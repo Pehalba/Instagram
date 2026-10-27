@@ -1,0 +1,124 @@
+// SQLite não tem enum nativo. Os campos de texto usam os códigos
+// documentados abaixo e validados na aplicação.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// Perfil: carolalbas | albascouple
+model Serie {
+  id               String   @id @default(cuid())
+  nome             String
+  /// Chave estável de importação: sem acento, minúsculo, sem pontuação final.
+  nomeNormalizado  String
+  perfil           String
+  descricao        String?
+  quadroFixo       Boolean  @default(false)
+  ordem            Int      @default(0)
+  ideias           Ideia[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([perfil, nomeNormalizado])
+}
+
+/// Status: IDEIA | ROTEIRIZANDO | PRONTO_PARA_GRAVAR | GRAVADO | EDITADO | AGENDADO | POSTADO
+/// Prioridade: ALTA | MEDIA | BAIXA
+/// Formato: REELS | CARROSSEL | STORIES | THREADS
+model Ideia {
+  id                 String    @id @default(cuid())
+  titulo             String
+  tituloNormalizado  String
+  perfil             String
+  serieId            String?
+  serie              Serie?    @relation(fields: [serieId], references: [id], onDelete: SetNull)
+  status             String    @default("IDEIA")
+  prioridade         String    @default("MEDIA")
+  formato            String?
+  /// Duração planejada em segundos, quando o formato do roteiro indica uma faixa.
+  duracaoEstimadaSeg Int?
+  tags               Json      @default("[]")
+  /// Nota entre parênteses no fim do item do Markdown. Notas digitadas no app ficam em `notas`.
+  notaOrigem         String?
+  notas              String?
+  dataPlanejada      DateTime?
+  dataPostada        DateTime?
+  ordemNaSerie       Int       @default(0)
+  roteiro            Roteiro?
+  gravacoes          GravacaoIdeia[]
+  metricas           Metrica[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([perfil, tituloNormalizado])
+  @@index([status])
+  @@index([perfil, status])
+  @@index([dataPlanejada])
+}
+
+model Roteiro {
+  id                  String   @id @default(cuid())
+  ideiaId             String   @unique
+  ideia               Ideia    @relation(fields: [ideiaId], references: [id], onDelete: Cascade)
+  formatoDescricao    String   @default("")
+  gancho              String   @default("")
+  parte1Tensao        String   @default("")
+  parte2Virada        String   @default("")
+  parte3Aplicacao     String   @default("")
+  legenda             String   @default("")
+  cta                 String   @default("")
+  porQuePerform       String   @default("")
+  referenciasBiblicas Json     @default("[]")
+  autoresCitados      Json     @default("[]")
+  /// Trechos entre colchetes que ainda pedem história pessoal, ex.: "[sua história]".
+  marcadoresHistoria  Json     @default("[]")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Gravacao {
+  id        String          @id @default(cuid())
+  titulo    String
+  data      DateTime?
+  cenario   String?
+  look      String?
+  ideias    GravacaoIdeia[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model GravacaoIdeia {
+  id          String   @id @default(cuid())
+  gravacaoId  String
+  gravacao    Gravacao @relation(fields: [gravacaoId], references: [id], onDelete: Cascade)
+  ideiaId     String
+  ideia       Ideia    @relation(fields: [ideiaId], references: [id], onDelete: Cascade)
+  ordem       Int      @default(0)
+  cenario     String?
+  look        String?
+  gravado     Boolean  @default(false)
+
+  @@unique([gravacaoId, ideiaId])
+}
+
+model Metrica {
+  id                String   @id @default(cuid())
+  ideiaId           String
+  ideia             Ideia    @relation(fields: [ideiaId], references: [id], onDelete: Cascade)
+  alcance           Int?
+  curtidas          Int?
+  comentarios       Int?
+  compartilhamentos Int?
+  salvamentos       Int?
+  seguidoresGanhos  Int?
+  dataColeta        DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([ideiaId])
+}
