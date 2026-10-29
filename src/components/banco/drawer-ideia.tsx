@@ -35,6 +35,15 @@ import { INSTRUCOES_COLAGEM, lerColagem, seriePeloNome, type ColagemIdeia } from
 import type { IdeiaLista, SerieOpcao } from "@/lib/tipos-ideia"
 import { cn } from "cn"
 
+const ETAPAS_FORMULARIO: { status: StatusIdeia; rotulo: string }[] = [
+  { status: "IDEIA", rotulo: "Ideia" },
+  { status: "ROTEIRIZANDO", rotulo: "Roteiro" },
+  { status: "PRONTO_PARA_GRAVAR", rotulo: "Pronta" },
+  { status: "GRAVADO", rotulo: "Gravado" },
+  { status: "EDITADO", rotulo: "Editado" },
+  { status: "POSTADO", rotulo: "Postado" },
+]
+
 type CamposRoteiro = {
   formatoDescricao: string
   gancho: string
@@ -195,19 +204,6 @@ function FormularioIdeia({
     setCopiado(true)
   }
 
-  function temTextoDeRoteiro() {
-    return Object.values(roteiro).some((valor) => valor.trim()) || Boolean(ideia?.temRoteiro)
-  }
-
-  function aoDesmarcar(alvo: StatusIdeia) {
-    if (status !== alvo) return
-    if (alvo === "IDEIA" || alvo === "ROTEIRIZANDO") {
-      setStatus("IDEIA")
-      return
-    }
-    setStatus(temTextoDeRoteiro() ? "ROTEIRIZANDO" : "IDEIA")
-  }
-
   const temRoteiro = Boolean(
     preenchido &&
       [preenchido.gancho, preenchido.parte1, preenchido.parte2, preenchido.parte3, preenchido.legenda, preenchido.cta, preenchido.porQuePerform, preenchido.formatoDescricao].some(Boolean),
@@ -318,55 +314,27 @@ function FormularioIdeia({
             </select>
           </Campo>
         </div>
-        <div className="grid gap-3">
-          <Escolha
-            grupo="Ideia"
-            nao="Não"
-            sim="Ideia"
-            ativo={status === "IDEIA"}
-            onNao={() => aoDesmarcar("IDEIA")}
-            onSim={() => setStatus("IDEIA")}
-          />
-          <Escolha
-            grupo="Roteiro"
-            nao="Não roteirizada"
-            sim="Roteirizada"
-            ativo={status === "ROTEIRIZANDO"}
-            onNao={() => aoDesmarcar("ROTEIRIZANDO")}
-            onSim={() => setStatus("ROTEIRIZANDO")}
-          />
-          <Escolha
-            grupo="Para gravar"
-            nao="Não pronta"
-            sim="Pronta para gravar"
-            ativo={status === "PRONTO_PARA_GRAVAR"}
-            onNao={() => aoDesmarcar("PRONTO_PARA_GRAVAR")}
-            onSim={() => setStatus("PRONTO_PARA_GRAVAR")}
-          />
-          <Escolha
-            grupo="Gravação"
-            nao="Não gravado"
-            sim="Gravado"
-            ativo={status === "GRAVADO"}
-            onNao={() => aoDesmarcar("GRAVADO")}
-            onSim={() => setStatus("GRAVADO")}
-          />
-          <Escolha
-            grupo="Edição"
-            nao="Não editado"
-            sim="Editado"
-            ativo={status === "EDITADO"}
-            onNao={() => aoDesmarcar("EDITADO")}
-            onSim={() => setStatus("EDITADO")}
-          />
-          <Escolha
-            grupo="Publicação"
-            nao="Não postado"
-            sim="Postado"
-            ativo={status === "POSTADO"}
-            onNao={() => aoDesmarcar("POSTADO")}
-            onSim={() => setStatus("POSTADO")}
-          />
+        <div className="grid gap-1.5">
+          <span className="text-sm font-medium">Estágio</span>
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Estágio">
+            {ETAPAS_FORMULARIO.map((etapa) => {
+              const ativo = status === etapa.status
+              return (
+                <button
+                  key={etapa.status}
+                  type="button"
+                  aria-pressed={ativo}
+                  onClick={() => setStatus(etapa.status)}
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-sm leading-none",
+                    ativo ? "bg-foreground text-background" : "text-muted-foreground opacity-40 hover:opacity-100",
+                  )}
+                >
+                  {etapa.rotulo}
+                </button>
+              )
+            })}
+          </div>
         </div>
         <Campo rotulo="Formato" htmlFor="formato">
           <select id="formato" name="formato" className={selectClass} key={`formato-${versao}`} defaultValue={preenchido?.formato ?? ideia?.formato ?? ""}>
@@ -462,52 +430,6 @@ function FormularioIdeia({
         </div>
       ) : null}
     </>
-  )
-}
-
-function Escolha({
-  grupo,
-  nao,
-  sim,
-  ativo,
-  onNao,
-  onSim,
-}: {
-  grupo: string
-  nao: string
-  sim: string
-  ativo: boolean
-  onNao: () => void
-  onSim: () => void
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <span className="text-sm font-medium">{grupo}</span>
-      <div className="flex flex-wrap gap-2" role="group" aria-label={grupo}>
-        <button
-          type="button"
-          aria-pressed={!ativo}
-          onClick={onNao}
-          className={cn(
-            "rounded-full border px-3 py-1 text-sm",
-            !ativo ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
-          )}
-        >
-          {nao}
-        </button>
-        <button
-          type="button"
-          aria-pressed={ativo}
-          onClick={onSim}
-          className={cn(
-            "rounded-full border px-3 py-1 text-sm",
-            ativo ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
-          )}
-        >
-          {sim}
-        </button>
-      </div>
-    </div>
   )
 }
 

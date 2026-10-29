@@ -73,6 +73,8 @@ async function main() {
       perfil: texto(serie.perfil),
       descricao: texto(serie.descricao) || null,
       quadroFixo: serie.quadroFixo === 1 || serie.quadroFixo === true,
+      cor: texto(serie.cor) || null,
+      emoji: texto(serie.emoji) || null,
       ordem: Number(serie.ordem ?? 0),
       atualizadoEm: agora,
     },

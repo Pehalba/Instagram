@@ -71,6 +71,8 @@ export function PaginaSeriesNuvem() {
     perfil: serie.perfil,
     quadroFixo: serie.quadroFixo,
     descricao: serie.descricao,
+    cor: serie.cor,
+    emoji: serie.emoji,
     ideias: banco.ideiasCompletas.filter((ideia) => ideia.serieId === serie.id).length,
   }))
   const semSerie = PERFIS.flatMap((perfil) => {
@@ -108,7 +110,10 @@ export function PaginaSerieNuvem({ id }: { id: string }) {
           <ArrowLeft />
           Voltar
         </Button>
-        <h1 className="font-heading mt-2 text-3xl leading-tight break-words sm:text-4xl lg:text-5xl">{titulo}</h1>
+        <h1 className="font-heading mt-2 text-3xl leading-tight break-words sm:text-4xl lg:text-5xl">
+          {serie?.emoji ? <span className="mr-2">{serie.emoji}</span> : null}
+          {titulo}
+        </h1>
         <p className="mt-3 text-muted-foreground">
           <span className={classeTextoPerfil(perfil)}>{PERFIL_LABEL[perfil]}</span>
           {serie?.quadroFixo ? " · quadro fixo" : ""}

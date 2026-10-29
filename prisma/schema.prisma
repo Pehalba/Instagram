@@ -18,6 +18,10 @@ model Serie {
   nomeNormalizado  String
   perfil           String
   descricao        String?
+  /// Cor escolhida: oliva | musgo | cedro | argila | vinho | ouro | noite | pedra | grafite | ameixa
+  cor              String?
+  /// Emoji escolhido na lista fixa do estúdio.
+  emoji            String?
   quadroFixo       Boolean  @default(false)
   ordem            Int      @default(0)
   ideias           Ideia[]

@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PERFIL_LABEL, type Perfil } from "@/lib/conteudo"
+import { EscolhaAparencia } from "@/components/series/escolha-aparencia"
 
 export function EditarSerie({
   id,
@@ -23,6 +24,8 @@ export function EditarSerie({
   descricao,
   quadroFixo,
   ideias,
+  cor,
+  emoji,
 }: {
   id: string
   nome: string
@@ -30,6 +33,8 @@ export function EditarSerie({
   descricao: string | null
   quadroFixo: boolean
   ideias: number
+  cor?: string | null
+  emoji?: string | null
 }) {
   const [aberto, setAberto] = useState(false)
 
@@ -56,6 +61,8 @@ export function EditarSerie({
               descricao={descricao}
               quadroFixo={quadroFixo}
               ideias={ideias}
+              cor={cor}
+              emoji={emoji}
               aoSalvar={() => setAberto(false)}
             />
           ) : null}
@@ -72,6 +79,8 @@ function Formulario({
   descricao,
   quadroFixo,
   ideias,
+  cor,
+  emoji,
   aoSalvar,
 }: {
   id: string
@@ -80,6 +89,8 @@ function Formulario({
   descricao: string | null
   quadroFixo: boolean
   ideias: number
+  cor?: string | null
+  emoji?: string | null
   aoSalvar: () => void
 }) {
   const nuvem = useFirebase()
@@ -105,6 +116,7 @@ function Formulario({
           Descrição
           <Input name="descricao" defaultValue={descricao ?? ""} placeholder="Opcional" className="bg-background" />
         </label>
+        <EscolhaAparencia corInicial={cor} emojiInicial={emoji} />
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="quadroFixo" defaultChecked={quadroFixo} className="size-4 accent-foreground" />
           Quadro fixo

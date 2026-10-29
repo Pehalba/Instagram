@@ -26,6 +26,8 @@ export default async function PaginaSeries() {
       perfil: serie.perfil,
       quadroFixo: serie.quadroFixo,
       descricao: serie.descricao,
+      cor: serie.cor,
+      emoji: serie.emoji,
       ideias: serie._count.ideias,
     }]
   })

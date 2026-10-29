@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PERFIS, PERFIL_LABEL, classeBordaPerfil, classeTextoPerfil, type Perfil } from "@/lib/conteudo"
+import { corDaSerie } from "@/lib/aparencia-serie"
 import { cn } from "cn"
 
 export type CartaoSerie = {
@@ -16,6 +17,8 @@ export type CartaoSerie = {
   perfil: Perfil
   quadroFixo: boolean
   descricao: string | null
+  cor: string | null
+  emoji: string | null
   ideias: number
 }
 
@@ -121,10 +124,17 @@ export function GradeSeries({
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {doPerfil.map((serie) => (
               <li key={serie.id} className="min-w-0">
-                <div className={cn("relative flex h-full min-h-32 flex-col rounded-xl border border-l-4 bg-card", classeBordaPerfil(serie.perfil))}>
+                <div
+                  className={cn(
+                    "relative flex h-full min-h-32 flex-col rounded-xl border border-l-4 bg-card",
+                    !corDaSerie(serie.cor) && classeBordaPerfil(serie.perfil),
+                  )}
+                  style={corDaSerie(serie.cor) ? { borderLeftColor: corDaSerie(serie.cor) ?? undefined } : undefined}
+                >
                   <Cartao
                     href={`/series/${serie.id}`}
                     titulo={serie.nome}
+                    emoji={serie.emoji}
                     detalhe={`${serie.ideias} ${serie.ideias === 1 ? "ideia" : "ideias"}`}
                     descricao={serie.descricao}
                     quadroFixo={serie.quadroFixo}
@@ -137,6 +147,8 @@ export function GradeSeries({
                       descricao={serie.descricao}
                       quadroFixo={serie.quadroFixo}
                       ideias={serie.ideias}
+                      cor={serie.cor}
+                      emoji={serie.emoji}
                     />
                   </div>
                 </div>
@@ -165,17 +177,22 @@ function Cartao({
   titulo,
   detalhe,
   descricao,
+  emoji = null,
   quadroFixo = false,
 }: {
   href: string
   titulo: string
   detalhe: string
   descricao?: string | null
+  emoji?: string | null
   quadroFixo?: boolean
 }) {
   return (
     <Link href={href} className="flex h-full flex-col px-3 py-3 pr-12">
-      <span className="line-clamp-2 text-sm leading-snug font-medium">{titulo}</span>
+      <span className="line-clamp-2 text-sm leading-snug font-medium">
+        {emoji ? <span className="mr-1">{emoji}</span> : null}
+        {titulo}
+      </span>
       <span className="mt-1 text-xs text-muted-foreground">{detalhe}</span>
       {descricao ? <span className="mt-2 line-clamp-2 text-xs text-muted-foreground">{descricao}</span> : null}
       {quadroFixo ? (

@@ -6,6 +6,7 @@ import { useFirebase } from "@/components/dados/provedor-firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PERFIS, PERFIL_LABEL } from "@/lib/conteudo"
+import { EscolhaAparencia } from "@/components/series/escolha-aparencia"
 
 export function FormularioSerie({ aoFechar }: { aoFechar: () => void }) {
   const nuvem = useFirebase()
@@ -37,6 +38,7 @@ export function FormularioSerie({ aoFechar }: { aoFechar: () => void }) {
         Descrição
         <Input name="descricao" placeholder="Opcional" className="bg-background" />
       </label>
+      <EscolhaAparencia />
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="quadroFixo" className="size-4 accent-foreground" />
         Quadro fixo

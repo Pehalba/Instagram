@@ -22,6 +22,7 @@ import {
   type Prioridade,
   type StatusIdeia,
 } from "@/lib/conteudo"
+import { corSalva, emojiSalvo } from "@/lib/aparencia-serie"
 import type { IdeiaLista, RoteiroEditor, SerieOpcao } from "@/lib/tipos-ideia"
 
 export const COLECAO_SERIES = "series"
@@ -53,6 +54,8 @@ export type SerieNuvem = {
   perfil: Perfil
   descricao: string | null
   quadroFixo: boolean
+  cor: string | null
+  emoji: string | null
   ordem: number
 }
 
@@ -139,6 +142,8 @@ export function serieDoDocumento(id: string, dados: Record<string, unknown>): Se
     nomeNormalizado: typeof dados.nomeNormalizado === "string" ? dados.nomeNormalizado : normalizarTitulo(nome),
     perfil,
     descricao: typeof dados.descricao === "string" && dados.descricao ? dados.descricao : null,
+    cor: typeof dados.cor === "string" ? dados.cor : null,
+    emoji: typeof dados.emoji === "string" ? dados.emoji : null,
     quadroFixo: dados.quadroFixo === true,
     ordem: typeof dados.ordem === "number" ? dados.ordem : 0,
   }
@@ -412,6 +417,8 @@ export async function criarSerieNuvem(
     nomeNormalizado,
     perfil,
     descricao: descricao || null,
+    cor: corSalva(texto(form, "cor")),
+    emoji: emojiSalvo(texto(form, "emoji")),
     quadroFixo,
     ordem,
     atualizadoEm: agora(),
@@ -441,6 +448,8 @@ export async function editarSerieNuvem(
     nome,
     nomeNormalizado,
     descricao: descricao || null,
+    cor: corSalva(texto(form, "cor")),
+    emoji: emojiSalvo(texto(form, "emoji")),
     quadroFixo,
     atualizadoEm: agora(),
   })

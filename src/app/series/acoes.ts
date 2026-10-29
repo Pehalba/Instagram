@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { atualizarTelas } from "@/lib/atualizar-telas"
 import { Prisma } from "@/generated/prisma/client"
 import { ePerfil, normalizarTitulo } from "@/lib/conteudo"
+import { corSalva, emojiSalvo } from "@/lib/aparencia-serie"
 import { prisma } from "@/lib/prisma"
 
 export type EstadoSerie = {
@@ -29,6 +30,8 @@ export async function criarSerie(_estado: EstadoSerie, form: FormData): Promise<
         nomeNormalizado,
         perfil,
         descricao: descricao || null,
+        cor: corSalva(String(form.get("cor") ?? "")),
+        emoji: emojiSalvo(String(form.get("emoji") ?? "")),
         quadroFixo,
         ordem: (ultima._max.ordem ?? 0) + 1,
       },
@@ -64,6 +67,8 @@ export async function editarSerie(_estado: EstadoSerie, form: FormData): Promise
         nome,
         nomeNormalizado,
         descricao: descricao || null,
+        cor: corSalva(String(form.get("cor") ?? "")),
+        emoji: emojiSalvo(String(form.get("emoji") ?? "")),
         quadroFixo,
       },
     })
