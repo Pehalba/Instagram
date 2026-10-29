@@ -1,8 +1,10 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Trash2 } from "lucide-react"
 import { removerSerie } from "@/app/series/acoes"
+import { useFirebase } from "@/components/dados/provedor-firebase"
 import { Button } from "@/components/ui/button"
 
 export function RemoverSerie({
@@ -16,6 +18,8 @@ export function RemoverSerie({
   ideias: number
   voltar?: boolean
 }) {
+  const nuvem = useFirebase()
+  const router = useRouter()
   const [aberto, setAberto] = useState(false)
   const aviso = ideias === 0
     ? "Esta série não tem ideias."

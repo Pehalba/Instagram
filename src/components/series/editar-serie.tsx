@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react"
 import { Pencil } from "lucide-react"
 import { editarSerie, type EstadoSerie } from "@/app/series/acoes"
+import { useFirebase } from "@/components/dados/provedor-firebase"
 import { RemoverSerie } from "@/components/series/remover-serie"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -81,7 +82,8 @@ function Formulario({
   ideias: number
   aoSalvar: () => void
 }) {
-  const [estado, acao, pendente] = useActionState<EstadoSerie, FormData>(editarSerie, {})
+  const nuvem = useFirebase()
+  const [estado, acao, pendente] = useActionState<EstadoSerie, FormData>(nuvem?.editarSerie ?? editarSerie, {})
 
   useEffect(() => {
     if (estado.ok) aoSalvar()

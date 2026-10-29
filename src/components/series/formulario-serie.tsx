@@ -2,12 +2,14 @@
 
 import { useActionState, useEffect } from "react"
 import { criarSerie, type EstadoSerie } from "@/app/series/acoes"
+import { useFirebase } from "@/components/dados/provedor-firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PERFIS, PERFIL_LABEL } from "@/lib/conteudo"
 
 export function FormularioSerie({ aoFechar }: { aoFechar: () => void }) {
-  const [estado, acao, pendente] = useActionState<EstadoSerie, FormData>(criarSerie, {})
+  const nuvem = useFirebase()
+  const [estado, acao, pendente] = useActionState<EstadoSerie, FormData>(nuvem?.criarSerie ?? criarSerie, {})
 
   useEffect(() => {
     if (estado.ok) aoFechar()

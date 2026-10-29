@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 import { Instrument_Serif, Inter } from "next/font/google"
 import Script from "next/script"
 import { Cabecalho } from "@/components/cabecalho"
+import { ProvedorFirebase } from "@/components/dados/provedor-firebase"
+import { firebaseConfigurado } from "@/lib/firebase-config"
 import "./globals.css"
 
 const sans = Inter({
@@ -17,7 +19,7 @@ const serif = Instrument_Serif({
 
 export const metadata: Metadata = {
   title: "Estúdio · @carolalbas",
-  description: "Produção de conteúdo de @carolalbas e @albascouple.",
+  description: "Produção de conteúdo de @carolalbas, @albasfilms e @albascouple.",
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -7,9 +7,9 @@ export type SemanaPainel = { numero: number; inicio: number; fim: number; valor:
 export function PainelInicio({
   mes,
   frase,
-  postadas,
-  agendadas,
   prontas,
+  editadas,
+  postadas,
   marcadasNoMes,
   publicadasNoMes,
   semanas,
@@ -124,7 +124,7 @@ export function PainelInicio({
 
         <article className="rounded-2xl border bg-card px-4 py-4 sm:px-5">
           <h3 className="text-sm text-muted-foreground">
-            {perfis.length === 1 ? PERFIL_LABEL[perfis[0].perfil] : "Os dois perfis"}
+            {perfis.length === 1 ? PERFIL_LABEL[perfis[0].perfil] : "Todos os perfis"}
           </h3>
           <ul className="mt-4 flex flex-col gap-5">
             {perfis.map((perfil) => (

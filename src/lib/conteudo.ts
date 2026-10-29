@@ -1,4 +1,4 @@
-export const PERFIS = ["carolalbas", "albascouple"] as const
+export const PERFIS = ["carolalbas", "albasfilms", "albascouple"] as const
 export type Perfil = (typeof PERFIS)[number]
 
 export const STATUS = [
@@ -11,6 +11,15 @@ export const STATUS = [
   "AGENDADO",
 ] as const
 export type StatusIdeia = (typeof STATUS)[number]
+
+export const ORDEM_ETAPAS: StatusIdeia[] = [
+  "IDEIA",
+  "ROTEIRIZANDO",
+  "PRONTO_PARA_GRAVAR",
+  "GRAVADO",
+  "EDITADO",
+  "POSTADO",
+]
 
 export const STATUS_LABEL: Record<StatusIdeia, string> = {
   IDEIA: "Ideia",
@@ -43,6 +52,7 @@ export const FORMATO_LABEL: Record<Formato, string> = {
 
 export const PERFIL_LABEL: Record<Perfil, string> = {
   carolalbas: "@carolalbas",
+  albasfilms: "@albasfilms",
   albascouple: "@albascouple",
 }
 
@@ -175,4 +185,32 @@ export function eFormato(valor: string): valor is Formato {
 export function comoTags(valor: unknown): string[] {
   if (!Array.isArray(valor)) return []
   return valor.filter((item): item is string => typeof item === "string")
+}
+
+const APARENCIA: Record<Perfil, { texto: string; borda: string; ponto: string; fundo: string }> = {
+  carolalbas: { texto: "text-carol", borda: "border-carol", ponto: "bg-carol", fundo: "bg-carol/10" },
+  albasfilms: { texto: "text-films", borda: "border-films", ponto: "bg-films", fundo: "bg-films/10" },
+  albascouple: { texto: "text-casal", borda: "border-casal", ponto: "bg-casal", fundo: "bg-casal/10" },
+}
+
+export function classeTextoPerfil(perfil: Perfil) {
+  return APARENCIA[perfil].texto
+}
+
+export function classeBordaPerfil(perfil: Perfil) {
+  return APARENCIA[perfil].borda
+}
+
+export function classePontoPerfil(perfil: Perfil) {
+  return APARENCIA[perfil].ponto
+}
+
+export function classeFundoPerfil(perfil: Perfil) {
+  return APARENCIA[perfil].fundo
+}
+
+export function perfilSemSerie(id: string): Perfil | null {
+  if (!id.startsWith("sem-")) return null
+  const perfil = id.slice(4)
+  return ePerfil(perfil) ? perfil : null
 }

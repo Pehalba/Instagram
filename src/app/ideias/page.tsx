@@ -1,4 +1,5 @@
 import { BancoIdeias } from "@/components/banco/banco-ideias"
+import { firebaseConfigurado } from "@/lib/firebase-config"
 import {
   comoTags,
   eFormato,

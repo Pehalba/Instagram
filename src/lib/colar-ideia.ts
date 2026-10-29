@@ -37,6 +37,8 @@ const ROTULOS: Record<string, string> = {
   serie: "serieNome",
   titulo: "titulo",
   status: "status",
+  estagio: "status",
+  etapa: "status",
   prioridade: "prioridade",
   formato: "formatoCurto",
   "formato do roteiro": "formatoDescricao",
@@ -44,6 +46,11 @@ const ROTULOS: Record<string, string> = {
   notas: "notas",
   "data planejada": "dataPlanejada",
   "data postada": "dataPostada",
+  "pronta para gravar": "marcaPronta",
+  gravado: "marcaGravado",
+  postado: "marcaPostado",
+  roteirizada: "marcaRoteiro",
+  editado: "marcaEditado",
   gancho: "gancho",
   "parte 1": "parte1",
   "parte 2": "parte2",
@@ -57,7 +64,7 @@ const NOMES: Record<string, string> = {
   perfil: "perfil",
   serieNome: "série",
   titulo: "título",
-  status: "status",
+  status: "estágio",
   prioridade: "prioridade",
   formatoDescricao: "formato",
   tags: "tags",
@@ -76,7 +83,7 @@ const NOMES: Record<string, string> = {
 export const MODELO_COLAGEM = `Perfil: @carolalbas
 Série:
 Título:
-Status: Ideia
+Estágio: Ideia
 Prioridade: Média
 Formato: Reels
 Formato do roteiro: Reels, 45–60s
@@ -99,14 +106,9 @@ Por que performa:`
 
 export const INSTRUCOES_COLAGEM = `Transforme a ideia em um texto para colar no estúdio de conteúdo. Responda só com o bloco, sem comentário antes ou depois e sem cerca de código. Preencha o que foi dito e deixe o rótulo vazio quando isso não foi falado. Não invente versículo, história pessoal nem dado novo. Onde a história pessoal ainda falta, escreva [sua história].
 
-Perfil só pode ser @carolalbas ou @albascouple.
-Status só pode ser Ideia, Roteirizada, Pronto para gravar, Gravado, Editado ou Postado.
-Prioridade só pode ser Alta, Média ou Baixa.
-Formato só pode ser Reels, Carrossel, Stories ou Threads.
-Série é o nome exato, se existir. Se não existir, deixe vazio.
-Tags separadas por vírgula.
-Mantenha cada rótulo exatamente como está, com os dois-pontos. O texto de cada parte fica nas linhas de baixo, até o próximo rótulo.
-Na voz de @carolalbas, fale no feminino, como a Carol. Em @albascouple, fale como o casal.
+Perfil só pode ser @carolalbas, @albasfilms ou @albascouple.
+Estágio só pode ser um destes: Ideia, Roteirizada, Pronta para gravar, Gravado, Editado ou Postado. Escolha o estágio em que o vídeo está. Se o rótulo não aparecer ou ficar vazio, use Ideia.
+Na voz de @carolalbas, fale no feminino, como a Carol. Em @albasfilms, fale como o perfil de filmes. Em @albascouple, fale como o casal.
 
 ${MODELO_COLAGEM}`
 
@@ -136,6 +138,7 @@ function rotuloDaLinha(linha: string): { campo: string; resto: string } | null {
 function perfilDe(valor: string): Perfil | null {
   const texto = semAcento(valor).replace("@", "").trim()
   if (texto === "carolalbas" || texto === "carol") return "carolalbas"
+  if (texto === "albasfilms" || texto === "films") return "albasfilms"
   if (texto === "albascouple" || texto === "casal") return "albascouple"
   return null
 }
@@ -146,13 +149,36 @@ function statusDe(valor: string): StatusIdeia | null {
     ideia: "IDEIA",
     roteirizando: "ROTEIRIZANDO",
     roteirizada: "ROTEIRIZANDO",
+    roteirizado: "ROTEIRIZANDO",
+    roteiro: "ROTEIRIZANDO",
     "pronto para gravar": "PRONTO_PARA_GRAVAR",
+    "pronta para gravar": "PRONTO_PARA_GRAVAR",
+    pronta: "PRONTO_PARA_GRAVAR",
     gravado: "GRAVADO",
     editado: "EDITADO",
     agendado: "AGENDADO",
     postado: "POSTADO",
   }
   return mapa[texto] ?? null
+}
+
+function marcaDe(valor: string): boolean | null {
+  const texto = semAcento(valor).trim()
+  if (!texto) return false
+  if (texto === "sim" || texto === "s" || texto === "yes") return true
+  if (texto === "nao" || texto === "n" || texto === "no" || texto.startsWith("nao ")) return false
+  return null
+}
+
+function statusDasMarcas(marcas: { postado: boolean | null; editado: boolean | null; gravado: boolean | null; pronta: boolean | null; roteirizada: boolean | null }): StatusIdeia | null {
+  const faladas = [marcas.postado, marcas.editado, marcas.gravado, marcas.pronta, marcas.roteirizada]
+  if (faladas.every((marca) => marca === null)) return null
+  if (marcas.postado) return "POSTADO"
+  if (marcas.editado) return "EDITADO"
+  if (marcas.gravado) return "GRAVADO"
+  if (marcas.pronta) return "PRONTO_PARA_GRAVAR"
+  if (marcas.roteirizada) return "ROTEIRIZANDO"
+  return "IDEIA"
 }
 
 function prioridadeDe(valor: string): Prioridade | null {
@@ -233,13 +259,36 @@ export function lerColagem(bruto: string): ColagemIdeia {
   const perfilBruto = textoDo("perfil")
   if (perfilBruto) {
     resultado.perfil = perfilDe(perfilBruto)
-    if (!resultado.perfil) resultado.avisos.push("Perfil não reconhecido. Use @carolalbas ou @albascouple.")
+    if (!resultado.perfil) resultado.avisos.push("Perfil não reconhecido. Use @carolalbas, @albasfilms ou @albascouple.")
+  }
+
+  function marcaDoBloco(campo: string, rotulo: string): boolean | null {
+    if (!blocos.has(campo)) return null
+    const marca = marcaDe(textoDo(campo))
+    if (marca === null) {
+      resultado.avisos.push(`${rotulo} não reconhecido. Use sim ou não. Ficou como não.`)
+      return false
+    }
+    return marca
   }
 
   const statusBruto = textoDo("status")
-  if (statusBruto) {
-    resultado.status = statusDe(statusBruto)
-    if (!resultado.status) resultado.avisos.push("Status não reconhecido. Ele ficou como Ideia.")
+  if (blocos.has("status")) {
+    resultado.status = statusBruto ? statusDe(statusBruto) : "IDEIA"
+    if (!resultado.status) {
+      resultado.status = "IDEIA"
+      resultado.avisos.push("Estágio não reconhecido. Use Ideia, Roteirizada, Pronta para gravar, Gravado, Editado ou Postado.")
+    }
+  } else {
+    const marcas = {
+      pronta: marcaDoBloco("marcaPronta", "Pronta para gravar"),
+      gravado: marcaDoBloco("marcaGravado", "Gravado"),
+      postado: marcaDoBloco("marcaPostado", "Postado"),
+      roteirizada: marcaDoBloco("marcaRoteiro", "Roteirizada"),
+      editado: marcaDoBloco("marcaEditado", "Editado"),
+    }
+    const statusMarcado = statusDasMarcas(marcas)
+    if (statusMarcado) resultado.status = statusMarcado
   }
 
   const prioridadeBruta = textoDo("prioridade")
@@ -264,14 +313,13 @@ export function lerColagem(bruto: string): ColagemIdeia {
     else resultado.avisos.push(`A ${NOMES[campoData]} precisa estar como 2026-10-29.`)
   }
 
-  const temRoteiro = [resultado.gancho, resultado.parte1, resultado.parte2, resultado.parte3, resultado.legenda, resultado.cta, resultado.porQuePerform].some(Boolean)
-  if (!resultado.status && temRoteiro) resultado.status = "PRONTO_PARA_GRAVAR"
-
-  for (const [campo, nome] of Object.entries(NOMES)) {
-    const valor = resultado[campo as keyof ColagemIdeia]
-    if (typeof valor === "string" ? valor : valor) resultado.reconhecidos.push(nome)
-  }
+  if (!resultado.status) resultado.status = "IDEIA"
   if (!resultado.titulo) resultado.avisos.unshift("Não achei o título. A linha precisa ser Título: o nome da ideia.")
+  for (const [campo, linhasCampo] of blocos) {
+    if (!linhasCampo.some((linha) => linha.trim())) continue
+    const nome = NOMES[campo]
+    if (nome) resultado.reconhecidos.push(nome)
+  }
 
   return resultado
 }

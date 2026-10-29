@@ -3,13 +3,14 @@
 import { useActionState, useState } from "react"
 import Link from "next/link"
 import { salvarRoteiro, type EstadoFormulario } from "@/app/ideias/acoes"
+import { useFirebase } from "@/components/dados/provedor-firebase"
 import { BotaoCopiar } from "@/components/banco/botao-copiar"
 import { TextoMarcado } from "@/components/banco/texto-marcado"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { FORMATO_LABEL, PERFIL_LABEL, STATUS_LABEL } from "@/lib/conteudo"
+import { FORMATO_LABEL, PERFIL_LABEL, STATUS_LABEL, classeTextoPerfil } from "@/lib/conteudo"
 import {
   LIMITE_LEGENDA,
   fraseDuracao,
@@ -19,7 +20,8 @@ import { extrairAutores, extrairReferenciasBiblicas } from "@/lib/conteudo"
 import type { IdeiaLista, RoteiroEditor } from "@/lib/tipos-ideia"
 
 export function EditorRoteiro({ ideia, roteiro }: { ideia: IdeiaLista; roteiro: RoteiroEditor }) {
-  const [estado, acao, pendente] = useActionState<EstadoFormulario, FormData>(salvarRoteiro, {})
+  const nuvem = useFirebase()
+  const [estado, acao, pendente] = useActionState<EstadoFormulario, FormData>(nuvem?.salvarRoteiro ?? salvarRoteiro, {})
   const [gancho, setGancho] = useState(roteiro.gancho)
   const [parte1, setParte1] = useState(roteiro.parte1Tensao)
   const [parte2, setParte2] = useState(roteiro.parte2Virada)
@@ -44,7 +46,7 @@ export function EditorRoteiro({ ideia, roteiro }: { ideia: IdeiaLista; roteiro: 
           </Link>
           <h1 className="font-heading mt-2 text-3xl leading-tight break-words sm:text-4xl lg:text-5xl">{ideia.titulo}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            <span className={ideia.perfil === "carolalbas" ? "text-carol" : "text-casal"}>
+            <span className={classeTextoPerfil(ideia.perfil)}>
               {PERFIL_LABEL[ideia.perfil]}
             </span>
             {ideia.serieNome ? ` · ${ideia.serieNome}` : ""}

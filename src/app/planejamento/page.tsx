@@ -1,9 +1,14 @@
 import { QuadroKanban } from "@/components/quadro/kanban"
 import { carregarCartoes } from "@/lib/carregar-quadro"
+import { firebaseConfigurado } from "@/lib/firebase-config"
 
 export const dynamic = "force-dynamic"
 
 export default async function PaginaPlanejamento() {
+  if (firebaseConfigurado()) {
+    const { PaginaPlanejamentoNuvem } = await import("@/components/nuvem/paginas")
+    return <PaginaPlanejamentoNuvem />
+  }
   const ideias = await carregarCartoes()
 
   return (

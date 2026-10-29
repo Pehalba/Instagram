@@ -1,8 +1,9 @@
 "use client"
 
-import { useActionState, useEffect, useState, type ReactNode } from "react"
+import { useActionState, useEffect, useState, type ClipboardEvent, type ReactNode } from "react"
 import { ClipboardPaste } from "lucide-react"
 import { lerRoteiro, salvarIdeia, type EstadoFormulario } from "@/app/ideias/acoes"
+import { useFirebase } from "@/components/dados/provedor-firebase"
 import { ExcluirIdeia } from "@/components/banco/excluir-ideia"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,8 +23,10 @@ import {
   PERFIL_LABEL,
   PRIORIDADES,
   PRIORIDADE_LABEL,
-  STATUS,
+  ORDEM_ETAPAS,
   STATUS_LABEL,
+  classeTextoPerfil,
+  ePerfil,
   eStatus,
   type Perfil,
   type StatusIdeia,
@@ -98,13 +101,12 @@ function FormularioIdeia({
   padrao?: { perfil: Perfil; serieId: string | null }
   onSalvou: () => void
 }) {
-  const [estado, acao, pendente] = useActionState<EstadoFormulario, FormData>(salvarIdeia, {})
+  const nuvem = useFirebase()
+  const [estado, acao, pendente] = useActionState<EstadoFormulario, FormData>(nuvem?.salvarIdeia ?? salvarIdeia, {})
   const [perfil, setPerfil] = useState(ideia?.perfil ?? padrao?.perfil ?? "carolalbas")
   const [serieId, setSerieId] = useState(ideia ? (ideia.serieId ?? "") : (padrao?.serieId ?? ""))
   const [preenchido, setPreenchido] = useState<ColagemIdeia | null>(null)
   const [versao, setVersao] = useState(0)
-  const [colarAberto, setColarAberto] = useState(false)
-  const [textoColado, setTextoColado] = useState("")
   const [avisos, setAvisos] = useState<string[]>([])
   const [copiado, setCopiado] = useState(false)
   const [roteiroAberto, setRoteiroAberto] = useState(false)
@@ -118,15 +120,16 @@ function FormularioIdeia({
   }, [estado, onSalvou])
 
   function aoMudarPerfil(valor: string) {
-    setPerfil(valor === "albascouple" ? "albascouple" : "carolalbas")
+    if (!ePerfil(valor)) return
+    setPerfil(valor)
     setSerieId("")
   }
 
-  function aplicarColagem() {
-    const lido = lerColagem(textoColado)
+  function aplicarColagem(texto: string) {
+    const lido = lerColagem(texto)
     if (!lido.titulo && lido.reconhecidos.length === 0) {
       setPreenchido(null)
-      setAvisos(["Não reconheci o texto. Cole o bloco com Título:, Gancho:, Parte 1: e os outros rótulos."])
+      setAvisos(["Não reconheci o texto. O bloco precisa ter Título:, Gancho: ou outro rótulo."])
       return
     }
     const perfilAlvo = lido.perfil ?? perfil
@@ -152,16 +155,37 @@ function FormularioIdeia({
       setRoteiroAberto(true)
       setRoteiroPronto(true)
     }
-    if (lido.status) setStatus(lido.status)
+    setStatus(lido.status ?? "IDEIA")
     setPreenchido(lido)
     setAvisos(lido.avisos)
     setVersao((atual) => atual + 1)
   }
 
+  async function colarDaArea() {
+    try {
+      const texto = await navigator.clipboard.readText()
+      if (!texto.trim()) {
+        setAvisos(["Não há texto copiado."])
+        return
+      }
+      aplicarColagem(texto)
+    } catch {
+      setAvisos(["Não consegui ler o que está copiado. Use Ctrl+V dentro do formulário."])
+    }
+  }
+
+  function aoColar(evento: ClipboardEvent<HTMLFormElement>) {
+    const texto = evento.clipboardData.getData("text")
+    const lido = lerColagem(texto)
+    if (!lido.titulo && lido.reconhecidos.length === 0) return
+    evento.preventDefault()
+    aplicarColagem(texto)
+  }
+
   async function abrirRoteiro() {
     setRoteiroAberto(true)
     if (!ideia || roteiroPronto || !ideia.temRoteiro) return
-    const lido = await lerRoteiro(ideia.id)
+    const lido = await (nuvem?.lerRoteiro ?? lerRoteiro)(ideia.id)
     setRoteiroPronto(true)
     if (lido) setRoteiro(lido)
   }
@@ -177,7 +201,7 @@ function FormularioIdeia({
 
   function aoDesmarcar(alvo: StatusIdeia) {
     if (status !== alvo) return
-    if (alvo === "ROTEIRIZANDO") {
+    if (alvo === "IDEIA" || alvo === "ROTEIRIZANDO") {
       setStatus("IDEIA")
       return
     }
@@ -199,12 +223,12 @@ function FormularioIdeia({
             : "Um título e o perfil já bastam. Ou cole o texto que a outra IA montou."}
         </DialogDescription>
       </DialogHeader>
-      <form action={acao} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-6">
+      <form action={acao} onPaste={aoColar} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-6">
         {ideia ? <input type="hidden" name="id" value={ideia.id} /> : null}
         {!ideia ? (
           <div className="flex flex-col gap-2 rounded-2xl border bg-muted/40 p-3">
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant={colarAberto ? "default" : "outline"} size="sm" onClick={() => setColarAberto((aberto) => !aberto)}>
+              <Button type="button" variant="outline" size="sm" onClick={colarDaArea}>
                 <ClipboardPaste />
                 Colar texto
               </Button>
@@ -212,18 +236,6 @@ function FormularioIdeia({
                 {copiado ? "Instruções copiadas" : "Copiar modelo para a IA"}
               </Button>
             </div>
-            {colarAberto ? (
-              <>
-                <Textarea
-                  value={textoColado}
-                  onChange={(evento) => setTextoColado(evento.target.value)}
-                  rows={8}
-                  placeholder={"Título: ...\nGancho:\n...\nParte 1:\n..."}
-                  aria-label="Texto colado da outra IA"
-                />
-                <Button type="button" size="sm" onClick={aplicarColagem}>Preencher campos</Button>
-              </>
-            ) : null}
             {preenchido ? (
               <p className="text-xs text-muted-foreground">
                 Preenchido: {preenchido.reconhecidos.join(", ")}.
@@ -282,7 +294,7 @@ function FormularioIdeia({
                 if (eStatus(evento.target.value)) setStatus(evento.target.value)
               }}
             >
-              {STATUS.filter((item) => item !== "AGENDADO").map((item) => (
+              {ORDEM_ETAPAS.map((item) => (
                 <option key={item} value={item}>
                   {STATUS_LABEL[item]}
                 </option>
@@ -308,6 +320,22 @@ function FormularioIdeia({
         </div>
         <div className="grid gap-3">
           <Escolha
+            grupo="Ideia"
+            nao="Não"
+            sim="Ideia"
+            ativo={status === "IDEIA"}
+            onNao={() => aoDesmarcar("IDEIA")}
+            onSim={() => setStatus("IDEIA")}
+          />
+          <Escolha
+            grupo="Roteiro"
+            nao="Não roteirizada"
+            sim="Roteirizada"
+            ativo={status === "ROTEIRIZANDO"}
+            onNao={() => aoDesmarcar("ROTEIRIZANDO")}
+            onSim={() => setStatus("ROTEIRIZANDO")}
+          />
+          <Escolha
             grupo="Para gravar"
             nao="Não pronta"
             sim="Pronta para gravar"
@@ -324,28 +352,20 @@ function FormularioIdeia({
             onSim={() => setStatus("GRAVADO")}
           />
           <Escolha
-            grupo="Publicação"
-            nao="Não postado"
-            sim="Postado"
-            ativo={status === "POSTADO"}
-            onNao={() => aoDesmarcar("POSTADO")}
-            onSim={() => setStatus("POSTADO")}
-          />
-          <Escolha
-            grupo="Roteiro"
-            nao="Não roteirizada"
-            sim="Roteirizada"
-            ativo={status === "ROTEIRIZANDO"}
-            onNao={() => aoDesmarcar("ROTEIRIZANDO")}
-            onSim={() => setStatus("ROTEIRIZANDO")}
-          />
-          <Escolha
             grupo="Edição"
             nao="Não editado"
             sim="Editado"
             ativo={status === "EDITADO"}
             onNao={() => aoDesmarcar("EDITADO")}
             onSim={() => setStatus("EDITADO")}
+          />
+          <Escolha
+            grupo="Publicação"
+            nao="Não postado"
+            sim="Postado"
+            ativo={status === "POSTADO"}
+            onNao={() => aoDesmarcar("POSTADO")}
+            onSim={() => setStatus("POSTADO")}
           />
         </div>
         <Campo rotulo="Formato" htmlFor="formato">

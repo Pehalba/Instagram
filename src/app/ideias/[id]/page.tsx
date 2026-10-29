@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { EditorRoteiro } from "@/components/banco/editor-roteiro"
+import { firebaseConfigurado } from "@/lib/firebase-config"
 import { comoTags, eFormato, ePerfil, eStatus, prioridadeSalva } from "@/lib/conteudo"
 import { prisma } from "@/lib/prisma"
 import type { IdeiaLista, RoteiroEditor } from "@/lib/tipos-ideia"
@@ -17,6 +18,10 @@ function comoListaTexto(valor: unknown): string[] {
 
 export default async function PaginaRoteiro({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  if (firebaseConfigurado()) {
+    const { PaginaRoteiroNuvem } = await import("@/components/nuvem/paginas")
+    return <PaginaRoteiroNuvem id={id} />
+  }
   const ideia = await prisma.ideia.findUnique({
     where: { id },
     include: { serie: true, roteiro: true },

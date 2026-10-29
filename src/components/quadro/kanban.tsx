@@ -16,16 +16,19 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, ListFilter } from "lucide-react"
 import { moverStatus } from "@/app/ideias/acoes"
+import { useFirebase } from "@/components/dados/provedor-firebase"
 import { deteccao } from "@/components/quadro/deteccao"
 import { FiltroPerfil } from "@/components/quadro/filtro-perfil"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
+  PERFIS,
   PERFIL_LABEL,
   PRIORIDADES,
   PRIORIDADE_LABEL,
   STATUS,
   STATUS_LABEL,
+  classeBordaPerfil,
   eStatus,
   type Perfil,
   type Prioridade,
@@ -36,6 +39,7 @@ import { cn } from "cn"
 const LOTE = 24
 
 export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
+  const nuvem = useFirebase()
   const [perfil, setPerfil] = useState<Perfil | "">("")
   const [prioridade, setPrioridade] = useState<Prioridade | "">("")
   const [serie, setSerie] = useState("")
@@ -80,7 +84,10 @@ export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
   const porStatus = useMemo(() => {
     const mapa = new Map<(typeof COLUNAS)[number], CartaoQuadro[]>()
     for (const status of COLUNAS) mapa.set(status, [])
-    for (const ideia of visiveis) mapa.get(ideia.status)?.push(ideia)
+    for (const ideia of visiveis) {
+      if (ideia.status === "AGENDADO") continue
+      mapa.get(ideia.status)?.push(ideia)
+    }
     return mapa
   }, [visiveis])
 
@@ -99,7 +106,7 @@ export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
     const anterior = itens
     setItens((lista) => lista.map((ideia) => (ideia.id === id ? { ...ideia, status: destino } : ideia)))
     try {
-      await moverStatus(id, destino)
+      await (nuvem?.moverStatus ?? moverStatus)(id, destino)
     } catch {
       setItens(anterior)
     }
@@ -286,9 +293,10 @@ const Coluna = memo(function Coluna({ status, ideias }: { status: (typeof COLUNA
           <label className="grid gap-1 text-xs text-muted-foreground">
             Perfil
             <select className={selectColuna} value={perfil} onChange={(evento) => setPerfil(evento.target.value as Perfil | "")}>
-              <option value="">Os dois</option>
-              <option value="carolalbas">{PERFIL_LABEL.carolalbas}</option>
-              <option value="albascouple">{PERFIL_LABEL.albascouple}</option>
+              <option value="">Todos</option>
+              {PERFIS.map((item) => (
+                <option key={item} value={item}>{PERFIL_LABEL[item]}</option>
+              ))}
             </select>
           </label>
           <label className="grid gap-1 text-xs text-muted-foreground">
@@ -359,7 +367,7 @@ function CartaoVisual({
     <article
       className={cn(
         "rounded-lg border border-l-4 bg-card px-2.5 py-2",
-        ideia.perfil === "carolalbas" ? "border-l-carol" : "border-l-casal",
+        classeBordaPerfil(ideia.perfil),
         arrastando && "shadow-lg",
       )}
     >

@@ -16,6 +16,7 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, ListFilter } from "lucide-react"
 import { agendarIdeia } from "@/app/ideias/acoes"
+import { useFirebase } from "@/components/dados/provedor-firebase"
 import { deteccao } from "@/components/quadro/deteccao"
 import { FiltroPerfil } from "@/components/quadro/filtro-perfil"
 import { Button } from "@/components/ui/button"
@@ -34,11 +35,12 @@ import {
   somarDias,
   tituloMes,
 } from "@/lib/datas"
-import { PERFIL_LABEL, PRIORIDADES, PRIORIDADE_LABEL, type Perfil, type Prioridade } from "@/lib/conteudo"
+import { PERFIS, PERFIL_LABEL, PRIORIDADES, PRIORIDADE_LABEL, classeFundoPerfil, classePontoPerfil, type Perfil, type Prioridade } from "@/lib/conteudo"
 import type { CartaoQuadro } from "@/lib/tipos-ideia"
 import { cn } from "cn"
 
 export function CalendarioEditorial({ ideias, hoje }: { ideias: CartaoQuadro[]; hoje: string }) {
+  const nuvem = useFirebase()
   const [visao, setVisao] = useState<"semana" | "mes">("mes")
   const [ancora, setAncora] = useState(hoje)
   const [perfil, setPerfil] = useState<Perfil | "">("")
@@ -129,7 +131,7 @@ export function CalendarioEditorial({ ideias, hoje }: { ideias: CartaoQuadro[]; 
     setItens((lista) => lista.map((ideia) => (ideia.id === id ? { ...ideia, dataPlanejada: novaData } : ideia)))
     if (novaData) setDiaAberto(novaData)
     try {
-      await agendarIdeia(id, novaData)
+      await (nuvem?.agendarIdeia ?? agendarIdeia)(id, novaData)
     } catch {
       setItens(anterior)
     }
@@ -251,12 +253,11 @@ export function CalendarioEditorial({ ideias, hoje }: { ideias: CartaoQuadro[]; 
           <p className="font-heading min-w-0 px-1 text-xl break-words sm:text-2xl">{titulo}</p>
         </div>
         <p className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <span className="inline-flex items-center gap-2">
-            <span className="size-2.5 rounded-full bg-carol" /> @carolalbas
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="size-2.5 rounded-full bg-casal" /> @albascouple
-          </span>
+          {PERFIS.map((item) => (
+            <span key={item} className="inline-flex items-center gap-2">
+              <span className={cn("size-2.5 rounded-full", classePontoPerfil(item))} /> {PERFIL_LABEL[item]}
+            </span>
+          ))}
         </p>
       </div>
 
@@ -379,9 +380,10 @@ const SemData = memo(function SemData({ ideias }: { ideias: CartaoQuadro[] }) {
               value={perfil}
               onChange={(evento) => setPerfil(evento.target.value as Perfil | "")}
             >
-              <option value="">Os dois</option>
-              <option value="carolalbas">{PERFIL_LABEL.carolalbas}</option>
-              <option value="albascouple">{PERFIL_LABEL.albascouple}</option>
+              <option value="">Todos</option>
+              {PERFIS.map((item) => (
+                <option key={item} value={item}>{PERFIL_LABEL[item]}</option>
+              ))}
             </select>
           </label>
           <label className="grid gap-1 text-xs text-muted-foreground">
@@ -491,7 +493,7 @@ function Dia({
           {ideias.slice(0, 3).map((ideia) => (
             <span
               key={ideia.id}
-              className={cn("size-1.5 rounded-full", ideia.perfil === "carolalbas" ? "bg-carol" : "bg-casal")}
+              className={cn("size-1.5 rounded-full", classePontoPerfil(ideia.perfil))}
             />
           ))}
         </div>
@@ -545,7 +547,7 @@ function Pílula({
     <div
       className={cn(
         "flex items-start gap-1 rounded-lg border px-1.5 py-1",
-        ideia.perfil === "carolalbas" ? "border-carol/40 bg-carol/15" : "border-casal/40 bg-casal/15",
+        classeFundoPerfil(ideia.perfil),
       )}
     >
       <button

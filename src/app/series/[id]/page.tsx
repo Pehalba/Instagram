@@ -4,12 +4,15 @@ import { notFound } from "next/navigation"
 import { ListaIdeiasSerie } from "@/components/series/lista-ideias"
 import { RemoverSerie } from "@/components/series/remover-serie"
 import { Button } from "@/components/ui/button"
+import { firebaseConfigurado } from "@/lib/firebase-config"
 import {
   PERFIL_LABEL,
+  classeTextoPerfil,
   comoTags,
   eFormato,
   ePerfil,
   eStatus,
+  perfilSemSerie,
   prioridadeSalva,
   type Perfil,
 } from "@/lib/conteudo"
@@ -25,8 +28,11 @@ function iso(data: Date | null): string | null {
 
 export default async function PaginaSerie({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const semPerfil = id.match(/^sem-(carolalbas|albascouple)$/)
-  const perfilSolto = semPerfil?.[1]
+  if (firebaseConfigurado()) {
+    const { PaginaSerieNuvem } = await import("@/components/nuvem/paginas")
+    return <PaginaSerieNuvem id={id} />
+  }
+  const perfilSolto = perfilSemSerie(id)
 
   const [serie, seriesBrutas] = await Promise.all([
     perfilSolto ? Promise.resolve(null) : prisma.serie.findUnique({ where: { id } }),
@@ -88,17 +94,14 @@ export default async function PaginaSerie({ params }: { params: Promise<{ id: st
   return (
     <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-8 sm:py-10">
       <header>
-        <Button variant="outline" render={<Link href="/series" />}>
+        <Button variant="outline" nativeButton={false} render={<Link href="/series" />}>
           <ArrowLeft />
           Voltar
         </Button>
         <h1 className="font-heading mt-2 text-3xl leading-tight break-words sm:text-4xl lg:text-5xl">{titulo}</h1>
         <p className="mt-3 text-muted-foreground">
-          <span className={perfil === "carolalbas" ? "text-carol" : "text-casal"}>{PERFIL_LABEL[perfil]}</span>
-          {serie?.quadroFixo ? " · quadro fixo" : ""}
-          {` · ${ideias.length} ${ideias.length === 1 ? "ideia" : "ideias"}`}
+          <span className={classeTextoPerfil(perfil)}>{PERFIL_LABEL[perfil]}</span>
         </p>
-        {serie?.descricao ? <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{serie.descricao}</p> : null}
         {serie ? (
           <div className="mt-4">
             <RemoverSerie id={serie.id} nome={serie.nome} ideias={ideias.length} voltar />

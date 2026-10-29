@@ -11,7 +11,7 @@ export function FiltroPerfil({
   aoMudar: (perfil: Perfil | "") => void
 }) {
   const opcoes: { id: Perfil | ""; rotulo: string }[] = [
-    { id: "", rotulo: "Os dois" },
+    { id: "", rotulo: "Todos" },
     ...PERFIS.map((perfil) => ({ id: perfil, rotulo: PERFIL_LABEL[perfil] })),
   ]
 

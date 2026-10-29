@@ -75,7 +75,7 @@ const CAMPOS: Record<string, CampoRoteiro> = {
 
 function perfilDe(valor: string): Perfil | null {
   const limpo = valor.trim().replace(/^@/, "").toLowerCase()
-  if (limpo === "carolalbas" || limpo === "albascouple") return limpo
+  if (limpo === "carolalbas" || limpo === "albasfilms" || limpo === "albascouple") return limpo
   return null
 }
 

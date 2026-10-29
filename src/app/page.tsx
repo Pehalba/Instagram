@@ -1,7 +1,8 @@
 import { type CartaoInicio } from "@/components/inicio/cartoes"
 import { Inicio } from "@/components/inicio/inicio"
+import { firebaseConfigurado } from "@/lib/firebase-config"
 import { type PerfilPainel } from "@/components/inicio/painel"
-import { PERFIL_LABEL, STATUS, ePerfil, eStatus, type Perfil, type StatusIdeia } from "@/lib/conteudo"
+import { PERFIS, PERFIL_LABEL, STATUS, ePerfil, eStatus, type Perfil, type StatusIdeia } from "@/lib/conteudo"
 import { hojeLocal, indiceSemana, tituloMes } from "@/lib/datas"
 import { prisma } from "@/lib/prisma"
 
@@ -108,6 +109,7 @@ async function carregarResumo() {
     const ideias = etapas.reduce((soma, etapa) => soma + etapa.valor, 0)
     const postadas = contagem.get("POSTADO") ?? 0
     const prontas = contagem.get("PRONTO_PARA_GRAVAR") ?? 0
+    const editadas = contagem.get("EDITADO") ?? 0
     const mesDeste = doMes.filter((ideia) => ideia.perfil === perfil)
     const datasMarcadas = mesDeste
       .map((ideia) => ideia.dataPlanejada?.toISOString().slice(0, 10))
@@ -172,9 +174,9 @@ async function carregarResumo() {
       painel: {
         mes: tituloMes(isoHoje),
         frase,
-        postadas,
-        agendadas: contarPerfil(agendadasPorPerfil, perfil),
         prontas,
+        editadas,
+        postadas,
         marcadasNoMes: datasMarcadas.length,
         publicadasNoMes,
         semanas: semanasDoMes(isoHoje, datasMarcadas),
@@ -184,10 +186,7 @@ async function carregarResumo() {
     }
   }
 
-  return {
-    carolalbas: montar("carolalbas"),
-    albascouple: montar("albascouple"),
-  }
+  return Object.fromEntries(PERFIS.map((perfil) => [perfil, montar(perfil)])) as Record<Perfil, ReturnType<typeof montar>>
 }
 
 function linhaPerfil(perfil: string, extra?: string | null) {

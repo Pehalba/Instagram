@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Trash2 } from "lucide-react"
 import { excluirIdeia } from "@/app/ideias/acoes"
+import { useFirebase } from "@/components/dados/provedor-firebase"
 import { Button } from "@/components/ui/button"
 
 export function ExcluirIdeia({
@@ -16,6 +17,7 @@ export function ExcluirIdeia({
   temRoteiro?: boolean
   onExcluiu?: () => void
 }) {
+  const nuvem = useFirebase()
   const [aberto, setAberto] = useState(false)
   const aviso = temRoteiro ? "O roteiro sai junto." : "Essa ação não volta atrás."
 

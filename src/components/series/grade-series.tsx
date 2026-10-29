@@ -7,7 +7,7 @@ import { FormularioSerie } from "@/components/series/formulario-serie"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PERFIS, PERFIL_LABEL, type Perfil } from "@/lib/conteudo"
+import { PERFIS, PERFIL_LABEL, classeBordaPerfil, classeTextoPerfil, type Perfil } from "@/lib/conteudo"
 import { cn } from "cn"
 
 export type CartaoSerie = {
@@ -115,13 +115,13 @@ export function GradeSeries({
         </p>
       ) : (
         <section className="flex flex-col gap-3">
-          <h2 className={perfil === "carolalbas" ? "text-sm text-carol" : "text-sm text-casal"}>
+          <h2 className={cn("text-sm", classeTextoPerfil(perfil))}>
             {PERFIL_LABEL[perfil]}
           </h2>
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {doPerfil.map((serie) => (
               <li key={serie.id} className="min-w-0">
-                <div className={`relative flex h-full min-h-32 flex-col rounded-xl border border-l-4 bg-card ${serie.perfil === "carolalbas" ? "border-l-carol" : "border-l-casal"}`}>
+                <div className={cn("relative flex h-full min-h-32 flex-col rounded-xl border border-l-4 bg-card", classeBordaPerfil(serie.perfil))}>
                   <Cartao
                     href={`/series/${serie.id}`}
                     titulo={serie.nome}
@@ -144,7 +144,7 @@ export function GradeSeries({
             ))}
             {semVisiveis.map((soltas) => (
               <li key={soltas.perfil} className="min-w-0">
-                <div className={`flex h-full min-h-32 flex-col rounded-xl border border-l-4 bg-card ${perfil === "carolalbas" ? "border-l-carol" : "border-l-casal"}`}>
+                <div className={cn("flex h-full min-h-32 flex-col rounded-xl border border-l-4 bg-card", classeBordaPerfil(perfil))}>
                   <Cartao
                     href={`/series/sem-${perfil}`}
                     titulo="Sem série"

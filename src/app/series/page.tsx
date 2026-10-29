@@ -1,5 +1,6 @@
 import { GradeSeries, type CartaoSerie } from "@/components/series/grade-series"
 import { ePerfil, type Perfil } from "@/lib/conteudo"
+import { firebaseConfigurado } from "@/lib/firebase-config"
 import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
