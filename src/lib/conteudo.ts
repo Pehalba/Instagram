@@ -2,19 +2,19 @@ export const PERFIS = ["carolalbas", "albascouple"] as const
 export type Perfil = (typeof PERFIS)[number]
 
 export const STATUS = [
-  "IDEIA",
-  "ROTEIRIZANDO",
   "PRONTO_PARA_GRAVAR",
   "GRAVADO",
+  "POSTADO",
+  "IDEIA",
+  "ROTEIRIZANDO",
   "EDITADO",
   "AGENDADO",
-  "POSTADO",
 ] as const
 export type StatusIdeia = (typeof STATUS)[number]
 
 export const STATUS_LABEL: Record<StatusIdeia, string> = {
   IDEIA: "Ideia",
-  ROTEIRIZANDO: "Roteirizando",
+  ROTEIRIZANDO: "Roteirizada",
   PRONTO_PARA_GRAVAR: "Pronto para gravar",
   GRAVADO: "Gravado",
   EDITADO: "Editado",
@@ -160,6 +160,12 @@ export function eStatus(valor: string): valor is StatusIdeia {
 
 export function ePrioridade(valor: string): valor is Prioridade {
   return (PRIORIDADES as readonly string[]).includes(valor)
+}
+
+/** `null` é sem prioridade. `undefined` é um valor inválido. */
+export function prioridadeSalva(valor: string | null): Prioridade | null | undefined {
+  if (!valor) return null
+  return ePrioridade(valor) ? valor : undefined
 }
 
 export function eFormato(valor: string): valor is Formato {

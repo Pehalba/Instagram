@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import { EditorRoteiro } from "@/components/banco/editor-roteiro"
-import { comoTags, eFormato, ePerfil, ePrioridade, eStatus } from "@/lib/conteudo"
+import { comoTags, eFormato, ePerfil, eStatus, prioridadeSalva } from "@/lib/conteudo"
 import { prisma } from "@/lib/prisma"
 import type { IdeiaLista, RoteiroEditor } from "@/lib/tipos-ideia"
 
@@ -21,7 +21,8 @@ export default async function PaginaRoteiro({ params }: { params: Promise<{ id: 
     where: { id },
     include: { serie: true, roteiro: true },
   })
-  if (!ideia || !ePerfil(ideia.perfil) || !eStatus(ideia.status) || !ePrioridade(ideia.prioridade)) {
+  const prioridade = ideia ? prioridadeSalva(ideia.prioridade) : undefined
+  if (!ideia || !ePerfil(ideia.perfil) || !eStatus(ideia.status) || prioridade === undefined) {
     notFound()
   }
 
@@ -35,7 +36,7 @@ export default async function PaginaRoteiro({ params }: { params: Promise<{ id: 
     ordemSerie: ideia.serie?.ordem ?? 9999,
     ordemNaSerie: ideia.ordemNaSerie,
     status: ideia.status,
-    prioridade: ideia.prioridade,
+    prioridade,
     formato: ideia.formato && eFormato(ideia.formato) ? ideia.formato : null,
     tags: comoTags(ideia.tags),
     notas: ideia.notas,
@@ -62,7 +63,7 @@ export default async function PaginaRoteiro({ params }: { params: Promise<{ id: 
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 py-8 sm:px-8 sm:py-10">
+    <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-1 flex-col px-4 py-6 sm:px-8 sm:py-10">
       <EditorRoteiro ideia={resumo} roteiro={roteiro} />
     </main>
   )

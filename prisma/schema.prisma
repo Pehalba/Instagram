@@ -28,7 +28,7 @@ model Serie {
 }
 
 /// Status: IDEIA | ROTEIRIZANDO | PRONTO_PARA_GRAVAR | GRAVADO | EDITADO | AGENDADO | POSTADO
-/// Prioridade: ALTA | MEDIA | BAIXA
+/// Prioridade: ALTA | MEDIA | BAIXA | vazio
 /// Formato: REELS | CARROSSEL | STORIES | THREADS
 model Ideia {
   id                 String    @id @default(cuid())
@@ -38,7 +38,7 @@ model Ideia {
   serieId            String?
   serie              Serie?    @relation(fields: [serieId], references: [id], onDelete: SetNull)
   status             String    @default("IDEIA")
-  prioridade         String    @default("MEDIA")
+  prioridade         String?
   formato            String?
   /// Duração planejada em segundos, quando o formato do roteiro indica uma faixa.
   duracaoEstimadaSeg Int?

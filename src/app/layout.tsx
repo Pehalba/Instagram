@@ -1,17 +1,18 @@
 import type { Metadata } from "next"
-import { Cormorant_Garamond, Nunito_Sans } from "next/font/google"
+import { Instrument_Serif, Inter } from "next/font/google"
+import Script from "next/script"
 import { Cabecalho } from "@/components/cabecalho"
 import "./globals.css"
 
-const sans = Nunito_Sans({
-  variable: "--font-nunito",
+const sans = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 })
 
-const serif = Cormorant_Garamond({
+const serif = Instrument_Serif({
   variable: "--font-serif",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: "400",
 })
 
 export const metadata: Metadata = {
@@ -26,17 +27,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${sans.variable} ${serif.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{if(localStorage.getItem('tema')==='escuro')document.documentElement.classList.add('dark')}catch(e){}",
-          }}
-        />
-      </head>
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-dvh flex-col md:flex-row">
+        <Script id="tema" strategy="beforeInteractive">
+          {`try{if(localStorage.getItem('tema')==='escuro')document.documentElement.classList.add('dark')}catch(e){}`}
+        </Script>
         <Cabecalho />
-        {children}
+        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
       </body>
     </html>
   )

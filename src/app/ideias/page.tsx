@@ -3,8 +3,8 @@ import {
   comoTags,
   eFormato,
   ePerfil,
-  ePrioridade,
   eStatus,
+  prioridadeSalva,
 } from "@/lib/conteudo"
 import { prisma } from "@/lib/prisma"
 import type { IdeiaLista, SerieOpcao } from "@/lib/tipos-ideia"
@@ -33,7 +33,8 @@ export default async function PaginaIdeias({
   ])
 
   const ideias: IdeiaLista[] = brutas.flatMap((ideia) => {
-    if (!ePerfil(ideia.perfil) || !eStatus(ideia.status) || !ePrioridade(ideia.prioridade)) return []
+    const prioridade = prioridadeSalva(ideia.prioridade)
+    if (!ePerfil(ideia.perfil) || !eStatus(ideia.status) || prioridade === undefined) return []
     const formato = ideia.formato && eFormato(ideia.formato) ? ideia.formato : null
     return [{
       id: ideia.id,
@@ -45,7 +46,7 @@ export default async function PaginaIdeias({
       ordemSerie: ideia.serie?.ordem ?? 9999,
       ordemNaSerie: ideia.ordemNaSerie,
       status: ideia.status,
-      prioridade: ideia.prioridade,
+      prioridade,
       formato,
       tags: comoTags(ideia.tags),
       notas: ideia.notas,
@@ -71,7 +72,7 @@ export default async function PaginaIdeias({
   })
 
   return (
-    <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-1 flex-col px-5 py-8 sm:px-8 sm:py-10">
+    <main className="mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col px-4 py-6 sm:px-8 sm:py-10">
       <BancoIdeias ideias={ideias} series={series} abrirId={editar} />
     </main>
   )

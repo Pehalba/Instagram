@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react"
 import Link from "next/link"
-import { duplicarIdeia, salvarRoteiro, type EstadoFormulario } from "@/app/ideias/acoes"
+import { salvarRoteiro, type EstadoFormulario } from "@/app/ideias/acoes"
 import { BotaoCopiar } from "@/components/banco/botao-copiar"
 import { TextoMarcado } from "@/components/banco/texto-marcado"
 import { Badge } from "@/components/ui/badge"
@@ -38,11 +38,11 @@ export function EditorRoteiro({ ideia, roteiro }: { ideia: IdeiaLista; roteiro: 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="max-w-3xl">
+        <div className="min-w-0 max-w-3xl">
           <Link href="/ideias" className="text-sm text-muted-foreground hover:text-foreground">
-            Voltar ao banco
+            Voltar às ideias
           </Link>
-          <h1 className="font-heading mt-2 text-4xl leading-tight sm:text-5xl">{ideia.titulo}</h1>
+          <h1 className="font-heading mt-2 text-3xl leading-tight break-words sm:text-4xl lg:text-5xl">{ideia.titulo}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             <span className={ideia.perfil === "carolalbas" ? "text-carol" : "text-casal"}>
               {PERFIL_LABEL[ideia.perfil]}
@@ -55,12 +55,6 @@ export function EditorRoteiro({ ideia, roteiro }: { ideia: IdeiaLista; roteiro: 
           <Button variant="outline" render={<Link href={`/ideias?editar=${ideia.id}`} />}>
             Editar dados
           </Button>
-          <form action={duplicarIdeia}>
-            <input type="hidden" name="id" value={ideia.id} />
-            <Button type="submit" variant="outline">
-              Duplicar
-            </Button>
-          </form>
         </div>
       </div>
 

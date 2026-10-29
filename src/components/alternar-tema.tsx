@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function AlternarTema() {
@@ -18,7 +19,8 @@ export function AlternarTema() {
   }
 
   return (
-    <Button variant="outline" onClick={alternar}>
+    <Button variant="outline" size="lg" className="w-full" onClick={alternar}>
+      {escuro ? <Sun /> : <Moon />}
       {escuro ? "Modo claro" : "Modo escuro"}
     </Button>
   )

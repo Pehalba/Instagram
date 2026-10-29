@@ -8,10 +8,12 @@ export function BotaoCopiar({
   legenda,
   cta,
   variante = "outline",
+  tamanho = "default",
 }: {
   legenda: string
   cta: string
   variante?: "outline" | "secondary"
+  tamanho?: "default" | "sm" | "xs"
 }) {
   const [copiado, setCopiado] = useState(false)
   const texto = textoParaCopiar(legenda, cta)
@@ -24,7 +26,7 @@ export function BotaoCopiar({
   }
 
   return (
-    <Button type="button" variant={variante} onClick={copiar} disabled={!texto}>
+    <Button type="button" size={tamanho} variant={variante} onClick={copiar} disabled={!texto}>
       {copiado ? "Copiado" : "Copiar legenda"}
     </Button>
   )

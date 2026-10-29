@@ -18,7 +18,7 @@ export type IdeiaLista = {
   ordemSerie: number
   ordemNaSerie: number
   status: StatusIdeia
-  prioridade: Prioridade
+  prioridade: Prioridade | null
   formato: Formato | null
   tags: string[]
   notas: string | null
@@ -36,7 +36,7 @@ export type CartaoQuadro = {
   titulo: string
   perfil: Perfil
   status: StatusIdeia
-  prioridade: Prioridade
+  prioridade: Prioridade | null
   serieNome: string | null
   dataPlanejada: string | null
 }
