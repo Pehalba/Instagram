@@ -195,6 +195,10 @@ function linhaPerfil(perfil: string, extra?: string | null) {
 }
 
 export default async function Home() {
+  if (firebaseConfigurado()) {
+    const { PaginaInicioNuvem } = await import("@/components/nuvem/paginas")
+    return <PaginaInicioNuvem />
+  }
   const resumos = await carregarResumo()
   return <Inicio resumos={resumos} />
 }

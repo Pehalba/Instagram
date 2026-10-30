@@ -32,7 +32,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-dvh flex-col md:flex-row">
         <Cabecalho />
-        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          {firebaseConfigurado() ? <ProvedorFirebase>{children}</ProvedorFirebase> : children}
+        </div>
       </body>
     </html>
   )

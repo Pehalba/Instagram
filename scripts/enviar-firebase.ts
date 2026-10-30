@@ -120,6 +120,7 @@ async function main() {
   }))
 
   console.log(`Enviei ${series.length} séries e ${ideias.length} ideias para o Firebase.`)
+  process.exit(0)
 }
 
 main().catch((erro: unknown) => {

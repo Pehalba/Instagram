@@ -6,6 +6,10 @@ import { prisma } from "@/lib/prisma"
 export const dynamic = "force-dynamic"
 
 export default async function PaginaSeries() {
+  if (firebaseConfigurado()) {
+    const { PaginaSeriesNuvem } = await import("@/components/nuvem/paginas")
+    return <PaginaSeriesNuvem />
+  }
   const [brutas, soltas] = await Promise.all([
     prisma.serie.findMany({
       orderBy: [{ ordem: "asc" }, { nome: "asc" }],

@@ -23,6 +23,10 @@ export default async function PaginaIdeias({
   searchParams: Promise<{ editar?: string }>
 }) {
   const { editar } = await searchParams
+  if (firebaseConfigurado()) {
+    const { PaginaIdeiasNuvem } = await import("@/components/nuvem/paginas")
+    return <PaginaIdeiasNuvem abrirId={editar} />
+  }
   const [brutas, seriesBrutas] = await Promise.all([
     prisma.ideia.findMany({
       include: {
