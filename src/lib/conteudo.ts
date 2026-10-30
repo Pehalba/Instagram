@@ -40,11 +40,12 @@ export const PRIORIDADE_LABEL: Record<Prioridade, string> = {
   BAIXA: "Baixa",
 }
 
-export const FORMATOS = ["REELS", "CARROSSEL", "STORIES", "THREADS"] as const
+export const FORMATOS = ["REELS", "FEED", "CARROSSEL", "STORIES", "THREADS"] as const
 export type Formato = (typeof FORMATOS)[number]
 
 export const FORMATO_LABEL: Record<Formato, string> = {
   REELS: "Reels",
+  FEED: "Feed",
   CARROSSEL: "Carrossel",
   STORIES: "Stories",
   THREADS: "Threads",
@@ -155,6 +156,7 @@ export function formatoEnum(descricao: string): Formato | null {
   if (texto.includes("carrossel")) return "CARROSSEL"
   if (texto.includes("stories")) return "STORIES"
   if (texto.includes("thread")) return "THREADS"
+  if (/\b(feed|post|foto)\b/.test(texto)) return "FEED"
   // Vídeo curto sem a palavra Reels (jogo de veredito, episódio de série) entra como Reels.
   if (/\d+\s*[–-]?\s*\d*\s*s\b/i.test(descricao)) return "REELS"
   return null

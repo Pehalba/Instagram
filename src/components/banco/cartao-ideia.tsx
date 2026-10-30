@@ -1,13 +1,21 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Pencil } from "lucide-react"
+import { AtSign, Clapperboard, GalleryHorizontalEnd, Image, Pencil, Smartphone, type LucideIcon } from "lucide-react"
 import { moverStatus } from "@/app/ideias/acoes"
 import { useFirebase } from "@/components/dados/provedor-firebase"
 import { Button } from "@/components/ui/button"
-import { FORMATO_LABEL, PERFIL_LABEL, PRIORIDADE_LABEL, classeTextoPerfil, type StatusIdeia } from "@/lib/conteudo"
+import { FORMATO_LABEL, PERFIL_LABEL, PRIORIDADE_LABEL, classeTextoPerfil, type Formato, type StatusIdeia } from "@/lib/conteudo"
 import type { IdeiaLista } from "@/lib/tipos-ideia"
 import { cn } from "cn"
+
+const ICONE_FORMATO: Record<Formato, LucideIcon> = {
+  REELS: Clapperboard,
+  FEED: Image,
+  CARROSSEL: GalleryHorizontalEnd,
+  STORIES: Smartphone,
+  THREADS: AtSign,
+}
 
 const MARCAS: { status: StatusIdeia; rotulo: string; sim: string; nao: string }[] = [
   { status: "IDEIA", rotulo: "Ideia", sim: "Ideia", nao: "Ideia" },
@@ -23,7 +31,6 @@ export function CartaoIdeia({ ideia, onAbrir }: { ideia: IdeiaLista; onAbrir: ()
   const [status, setStatus] = useState(ideia.status)
   const detalhes = [
     ideia.prioridade ? PRIORIDADE_LABEL[ideia.prioridade] : "Sem prioridade",
-    ideia.formato ? FORMATO_LABEL[ideia.formato] : null,
     ideia.temRoteiro ? "Com roteiro" : null,
     ...ideia.tags,
   ].filter((item): item is string => Boolean(item))
@@ -48,11 +55,12 @@ export function CartaoIdeia({ ideia, onAbrir }: { ideia: IdeiaLista; onAbrir: ()
       <article className="flex h-44 flex-col overflow-hidden rounded-2xl border bg-card">
         <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-1.5">
           <span className={`truncate text-[11px] ${classeTextoPerfil(ideia.perfil)}`}>{PERFIL_LABEL[ideia.perfil]}</span>
+          {ideia.formato ? <SeloFormato formato={ideia.formato} /> : null}
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="ml-auto"
+            className={ideia.formato ? undefined : "ml-auto"}
             aria-label={`Editar ${ideia.titulo}`}
             onClick={onAbrir}
           >
@@ -86,5 +94,15 @@ export function CartaoIdeia({ ideia, onAbrir }: { ideia: IdeiaLista; onAbrir: ()
         </div>
       </article>
     </li>
+  )
+}
+
+function SeloFormato({ formato }: { formato: Formato }) {
+  const Icone = ICONE_FORMATO[formato]
+  return (
+    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border bg-background px-2 py-1 text-[11px] leading-none font-medium text-foreground">
+      <Icone className="size-3.5" aria-hidden />
+      {FORMATO_LABEL[formato]}
+    </span>
   )
 }

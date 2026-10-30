@@ -108,6 +108,7 @@ export const INSTRUCOES_COLAGEM = `Transforme a ideia em um texto para colar no 
 
 Perfil só pode ser @carolalbas, @albasfilms ou @albascouple.
 Estágio só pode ser um destes: Ideia, Roteirizada, Pronta para gravar, Gravado, Editado ou Postado. Escolha o estágio em que o vídeo está. Se o rótulo não aparecer ou ficar vazio, use Ideia.
+Formato só pode ser Reels, Feed, Carrossel, Stories ou Threads. Feed é post único no feed; Carrossel é post com vários slides.
 Na voz de @carolalbas, fale no feminino, como a Carol. Em @albasfilms, fale como o perfil de filmes. Em @albascouple, fale como o casal.
 
 ${MODELO_COLAGEM}`
@@ -299,10 +300,10 @@ export function lerColagem(bruto: string): ColagemIdeia {
     }
   }
 
-  resultado.formato = formatoEnum(resultado.formatoDescricao)
+  resultado.formato = formatoEnum(textoDo("formatoCurto")) ?? formatoEnum(resultado.formatoDescricao)
   resultado.duracaoEstimadaSeg = estimarDuracaoSegundos(resultado.formatoDescricao)
   if (resultado.formatoDescricao && !resultado.formato) {
-    resultado.avisos.push("Formato não reconhecido. Use Reels, Carrossel, Stories ou Threads.")
+    resultado.avisos.push("Formato não reconhecido. Use Reels, Feed, Carrossel, Stories ou Threads.")
   }
 
   for (const campoData of ["dataPlanejada", "dataPostada"] as const) {

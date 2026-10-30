@@ -33,7 +33,7 @@ model Serie {
 
 /// Status: IDEIA | ROTEIRIZANDO | PRONTO_PARA_GRAVAR | GRAVADO | EDITADO | AGENDADO | POSTADO
 /// Prioridade: ALTA | MEDIA | BAIXA | vazio
-/// Formato: REELS | CARROSSEL | STORIES | THREADS
+/// Formato: REELS | FEED | CARROSSEL | STORIES | THREADS
 model Ideia {
   id                 String    @id @default(cuid())
   titulo             String

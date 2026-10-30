@@ -18,9 +18,9 @@ export function PainelInicio({
 }: {
   mes: string
   frase: string
-  postadas: number
-  agendadas: number
   prontas: number
+  editadas: number
+  postadas: number
   marcadasNoMes: number
   publicadasNoMes: number
   semanas: SemanaPainel[]
@@ -34,9 +34,9 @@ export function PainelInicio({
   const picoPerfil = Math.max(1, ...perfis.map((perfil) => perfil.ideias))
 
   const andamento = [
-    { rotulo: "Postadas", valor: postadas, detalhe: "já publicadas" },
-    { rotulo: "Agendadas", valor: agendadas, detalhe: "com dia, ainda não publicadas" },
     { rotulo: "Prontas para gravar", valor: prontas, detalhe: "roteiro fechado" },
+    { rotulo: "Editadas", valor: editadas, detalhe: "prontas para postar" },
+    { rotulo: "Postadas", valor: postadas, detalhe: "já publicadas" },
   ]
 
   return (

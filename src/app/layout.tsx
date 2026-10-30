@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { Instrument_Serif, Inter } from "next/font/google"
-import Script from "next/script"
+import { cookies } from "next/headers"
 import { Cabecalho } from "@/components/cabecalho"
 import { ProvedorFirebase } from "@/components/dados/provedor-firebase"
 import { firebaseConfigurado } from "@/lib/firebase-config"
@@ -22,17 +22,15 @@ export const metadata: Metadata = {
   description: "Produção de conteúdo de @carolalbas, @albasfilms e @albascouple.",
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const escuro = (await cookies()).get("tema")?.value === "escuro"
   return (
     <html
       lang="pt-BR"
-      className={`${sans.variable} ${serif.variable} h-full antialiased`}
+      className={`${sans.variable} ${serif.variable} h-full antialiased${escuro ? " dark" : ""}`}
       suppressHydrationWarning
     >
       <body className="flex min-h-dvh flex-col md:flex-row">
-        <Script id="tema" strategy="beforeInteractive">
-          {`try{if(localStorage.getItem('tema')==='escuro')document.documentElement.classList.add('dark')}catch(e){}`}
-        </Script>
         <Cabecalho />
         <div className="flex min-w-0 flex-1 flex-col">{children}</div>
       </body>
