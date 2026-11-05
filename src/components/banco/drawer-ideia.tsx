@@ -2,9 +2,9 @@
 
 import { useActionState, useEffect, useState, type ClipboardEvent, type ReactNode } from "react"
 import { ClipboardPaste } from "lucide-react"
-import { lerRoteiro, salvarIdeia, type EstadoFormulario } from "@/app/ideias/acoes"
-import { useFirebase } from "@/components/dados/provedor-firebase"
+import { useBanco } from "@/components/dados/provedor-firebase"
 import { ExcluirIdeia } from "@/components/banco/excluir-ideia"
+import { ESTILO_FORMATO, ICONE_FORMATO } from "@/components/banco/formato-visual"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -23,15 +23,14 @@ import {
   PERFIL_LABEL,
   PRIORIDADES,
   PRIORIDADE_LABEL,
-  ORDEM_ETAPAS,
-  STATUS_LABEL,
   classeTextoPerfil,
   ePerfil,
-  eStatus,
+  type Formato,
   type Perfil,
   type StatusIdeia,
 } from "@/lib/conteudo"
-import { INSTRUCOES_COLAGEM, lerColagem, seriePeloNome, type ColagemIdeia } from "@/lib/colar-ideia"
+import { INSTRUCOES_COLAGEM, lerColagem, seriePeloNome, subseriePeloNome, type ColagemIdeia } from "@/lib/colar-ideia"
+import type { EstadoGravacao } from "@/lib/gravar-nuvem"
 import type { IdeiaLista, SerieOpcao } from "@/lib/tipos-ideia"
 import { cn } from "cn"
 
@@ -80,14 +79,14 @@ export function DrawerIdeia({
   ideia: IdeiaLista | null
   series: SerieOpcao[]
   onFechar: () => void
-  padrao?: { perfil: Perfil; serieId: string | null }
+  padrao?: { perfil: Perfil; serieId: string | null; subserieId?: string | null }
 }) {
   return (
     <Dialog open={aberto} onOpenChange={(abertoAgora) => !abertoAgora && onFechar()}>
       <DialogContent>
         {aberto ? (
           <FormularioIdeia
-            key={ideia?.id ?? `nova-${padrao?.serieId ?? "solta"}`}
+            key={ideia?.id ?? `nova-${padrao?.serieId ?? "solta"}-${padrao?.subserieId ?? ""}`}
             ideia={ideia}
             series={series}
             padrao={padrao}
@@ -107,13 +106,19 @@ function FormularioIdeia({
 }: {
   ideia: IdeiaLista | null
   series: SerieOpcao[]
-  padrao?: { perfil: Perfil; serieId: string | null }
+  padrao?: { perfil: Perfil; serieId: string | null; subserieId?: string | null }
   onSalvou: () => void
 }) {
-  const nuvem = useFirebase()
-  const [estado, acao, pendente] = useActionState<EstadoFormulario, FormData>(nuvem?.salvarIdeia ?? salvarIdeia, {})
+  const banco = useBanco()
+  const [estado, acao, pendente] = useActionState<EstadoGravacao, FormData>(banco.salvarIdeia, {})
   const [perfil, setPerfil] = useState(ideia?.perfil ?? padrao?.perfil ?? "carolalbas")
   const [serieId, setSerieId] = useState(ideia ? (ideia.serieId ?? "") : (padrao?.serieId ?? ""))
+  const [subserieId, setSubserieId] = useState(ideia ? (ideia.subserieId ?? "") : (padrao?.subserieId ?? ""))
+  const subseriesDaSerie = serieId
+    ? banco.subseries
+        .filter((subserie) => subserie.serieId === serieId)
+        .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt-BR"))
+    : []
   const [preenchido, setPreenchido] = useState<ColagemIdeia | null>(null)
   const [versao, setVersao] = useState(0)
   const [avisos, setAvisos] = useState<string[]>([])
@@ -122,6 +127,7 @@ function FormularioIdeia({
   const [roteiroPronto, setRoteiroPronto] = useState(false)
   const [roteiro, setRoteiro] = useState<CamposRoteiro>(roteiroVazio)
   const [status, setStatus] = useState<StatusIdeia>(ideia?.status ?? "IDEIA")
+  const [formato, setFormato] = useState<Formato | "">(ideia ? (ideia.formato ?? "") : "REELS")
   const seriesDoPerfil = series.filter((serie) => serie.perfil === perfil)
 
   useEffect(() => {
@@ -132,6 +138,7 @@ function FormularioIdeia({
     if (!ePerfil(valor)) return
     setPerfil(valor)
     setSerieId("")
+    setSubserieId("")
   }
 
   function aplicarColagem(texto: string) {
@@ -145,6 +152,13 @@ function FormularioIdeia({
     const serieEncontrada = lido.serieNome ? seriePeloNome(lido.serieNome, perfilAlvo, series) : ""
     if (lido.perfil) setPerfil(lido.perfil)
     setSerieId(serieEncontrada)
+    const subserieEncontrada = serieEncontrada && lido.subserieNome
+      ? subseriePeloNome(lido.subserieNome, serieEncontrada, banco.subseries)
+      : ""
+    setSubserieId(subserieEncontrada)
+    if (serieEncontrada && lido.subserieNome && !subserieEncontrada) {
+      lido.avisos.push(`Não encontrei a subsérie “${lido.subserieNome}”. A ideia fica sem subsérie.`)
+    }
     if (!serieEncontrada && lido.serieNome) {
       lido.avisos.push(`Não encontrei a série “${lido.serieNome}”. A ideia fica sem série.`)
     }
@@ -165,6 +179,7 @@ function FormularioIdeia({
       setRoteiroPronto(true)
     }
     setStatus(lido.status ?? "IDEIA")
+    if (lido.formato) setFormato(lido.formato)
     setPreenchido(lido)
     setAvisos(lido.avisos)
     setVersao((atual) => atual + 1)
@@ -194,7 +209,7 @@ function FormularioIdeia({
   async function abrirRoteiro() {
     setRoteiroAberto(true)
     if (!ideia || roteiroPronto || !ideia.temRoteiro) return
-    const lido = await (nuvem?.lerRoteiro ?? lerRoteiro)(ideia.id)
+    const lido = await banco.lerRoteiro(ideia.id)
     setRoteiroPronto(true)
     if (lido) setRoteiro(lido)
   }
@@ -268,7 +283,10 @@ function FormularioIdeia({
               name="serieId"
               className={selectClass}
               value={serieId}
-              onChange={(evento) => setSerieId(evento.target.value)}
+              onChange={(evento) => {
+                setSerieId(evento.target.value)
+                setSubserieId("")
+              }}
             >
               <option value="">Sem série</option>
               {seriesDoPerfil.map((serie) => (
@@ -279,24 +297,50 @@ function FormularioIdeia({
             </select>
           </Campo>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Campo rotulo="Status" htmlFor="status">
+        {subseriesDaSerie.length > 0 ? (
+          <Campo rotulo="Subsérie (opcional)" htmlFor="subserieId">
             <select
-              id="status"
-              name="status"
+              id="subserieId"
+              name="subserieId"
               className={selectClass}
-              value={status}
-              onChange={(evento) => {
-                if (eStatus(evento.target.value)) setStatus(evento.target.value)
-              }}
+              value={subserieId}
+              onChange={(evento) => setSubserieId(evento.target.value)}
             >
-              {ORDEM_ETAPAS.map((item) => (
-                <option key={item} value={item}>
-                  {STATUS_LABEL[item]}
+              <option value="">Sem subsérie</option>
+              {subseriesDaSerie.map((subserie) => (
+                <option key={subserie.id} value={subserie.id}>
+                  {subserie.nome}
                 </option>
               ))}
             </select>
           </Campo>
+        ) : null}
+        <div className="grid gap-1.5">
+          <span className="text-sm font-medium">Formato</span>
+          <input type="hidden" name="formato" value={formato} />
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Formato">
+            {FORMATOS.map((item) => {
+              const Icone = ICONE_FORMATO[item]
+              const ativo = formato === item
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={ativo}
+                  onClick={() => setFormato(item)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm leading-none",
+                    ativo ? ESTILO_FORMATO[item].selo : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Icone className="size-4" aria-hidden />
+                  {FORMATO_LABEL[item]}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
           <Campo rotulo="Prioridade" htmlFor="prioridade">
             <select
               id="prioridade"
@@ -316,6 +360,7 @@ function FormularioIdeia({
         </div>
         <div className="grid gap-1.5">
           <span className="text-sm font-medium">Estágio</span>
+          <input type="hidden" name="status" value={status} />
           <div className="flex flex-wrap gap-1" role="group" aria-label="Estágio">
             {ETAPAS_FORMULARIO.map((etapa) => {
               const ativo = status === etapa.status
@@ -336,16 +381,6 @@ function FormularioIdeia({
             })}
           </div>
         </div>
-        <Campo rotulo="Formato" htmlFor="formato">
-          <select id="formato" name="formato" className={selectClass} key={`formato-${versao}`} defaultValue={preenchido?.formato ?? ideia?.formato ?? ""}>
-            <option value="">Sem formato</option>
-            {FORMATOS.map((item) => (
-              <option key={item} value={item}>
-                {FORMATO_LABEL[item]}
-              </option>
-            ))}
-          </select>
-        </Campo>
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo rotulo="Data planejada (opcional)" htmlFor="dataPlanejada">
             <Input key={`planejada-${versao}`} id="dataPlanejada" name="dataPlanejada" type="date" defaultValue={preenchido?.dataPlanejada || ideia?.dataPlanejada || ""} />

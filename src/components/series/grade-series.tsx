@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
+import { AcoesSeries } from "@/components/selecao/acoes-em-massa"
+import { BarraSelecao, BotaoSelecionar, CamadaSelecao, useSelecao } from "@/components/selecao/selecao"
 import { EditarSerie } from "@/components/series/editar-serie"
 import { FormularioSerie } from "@/components/series/formulario-serie"
 import { Badge } from "@/components/ui/badge"
@@ -49,6 +51,7 @@ export function GradeSeries({
   const [perfil, setPerfil] = useState<Perfil>("carolalbas")
   const [ordem, setOrdem] = useState<OrdemSerie>("padrao")
   const [criando, setCriando] = useState(false)
+  const selecao = useSelecao()
   const consulta = busca.trim().toLocaleLowerCase()
 
   const visiveis = useMemo(() => {
@@ -73,7 +76,10 @@ export function GradeSeries({
               key={item}
               type="button"
               aria-pressed={perfil === item}
-              onClick={() => setPerfil(item)}
+              onClick={() => {
+                setPerfil(item)
+                selecao.limpar()
+              }}
               className={cn(
                 "rounded-full border px-3 py-1 text-sm",
                 perfil === item ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
@@ -106,6 +112,7 @@ export function GradeSeries({
             <option value="mais">Mais ideias</option>
             <option value="menos">Menos ideias</option>
           </select>
+          {doPerfil.length > 0 ? <BotaoSelecionar selecao={selecao} /> : null}
           <Button type="button" variant={criando ? "default" : "outline"} onClick={() => setCriando((aberto) => !aberto)}>
             Nova série
           </Button>
@@ -114,7 +121,7 @@ export function GradeSeries({
       {criando ? <FormularioSerie aoFechar={() => setCriando(false)} /> : null}
       {doPerfil.length === 0 && semVisiveis.length === 0 ? (
         <p className="rounded-2xl border border-dashed px-4 py-10 text-center text-muted-foreground">
-          Nenhuma série com esse nome.
+          {consulta ? "Nenhuma série com esse nome." : `${PERFIL_LABEL[perfil]} ainda não tem séries.`}
         </p>
       ) : (
         <section className="flex flex-col gap-3">
@@ -131,15 +138,23 @@ export function GradeSeries({
                   )}
                   style={corDaSerie(serie.cor) ? { borderLeftColor: corDaSerie(serie.cor) ?? undefined } : undefined}
                 >
+                  {selecao.ativa ? (
+                    <CamadaSelecao
+                      marcado={selecao.marcados.has(serie.id)}
+                      rotulo={serie.nome}
+                      onAlternar={() => selecao.alternar(serie.id)}
+                    />
+                  ) : null}
                   <Cartao
-                    href={`/series/${serie.id}`}
+                    href={`/series/ver?id=${serie.id}`}
                     titulo={serie.nome}
                     emoji={serie.emoji}
                     detalhe={`${serie.ideias} ${serie.ideias === 1 ? "ideia" : "ideias"}`}
                     descricao={serie.descricao}
                     quadroFixo={serie.quadroFixo}
+                    recuo={selecao.ativa}
                   />
-                  <div className="absolute top-2 right-2">
+                  <div className={cn("absolute top-2 right-2", selecao.ativa && "hidden")}>
                     <EditarSerie
                       id={serie.id}
                       nome={serie.nome}
@@ -154,11 +169,11 @@ export function GradeSeries({
                 </div>
               </li>
             ))}
-            {semVisiveis.map((soltas) => (
+            {(selecao.ativa ? [] : semVisiveis).map((soltas) => (
               <li key={soltas.perfil} className="min-w-0">
                 <div className={cn("flex h-full min-h-32 flex-col rounded-xl border border-l-4 bg-card", classeBordaPerfil(perfil))}>
                   <Cartao
-                    href={`/series/sem-${perfil}`}
+                    href={`/series/ver?id=sem-${perfil}`}
                     titulo="Sem série"
                     detalhe={`${soltas.total} ${soltas.total === 1 ? "ideia" : "ideias"}`}
                   />
@@ -168,6 +183,9 @@ export function GradeSeries({
           </ul>
         </section>
       )}
+      <BarraSelecao selecao={selecao} ids={doPerfil.map((serie) => serie.id)} singular="série marcada" plural="séries marcadas">
+        {(marcados, terminar) => <AcoesSeries ids={marcados} terminar={terminar} />}
+      </BarraSelecao>
     </div>
   )
 }
@@ -179,6 +197,7 @@ function Cartao({
   descricao,
   emoji = null,
   quadroFixo = false,
+  recuo = false,
 }: {
   href: string
   titulo: string
@@ -186,9 +205,10 @@ function Cartao({
   descricao?: string | null
   emoji?: string | null
   quadroFixo?: boolean
+  recuo?: boolean
 }) {
   return (
-    <Link href={href} className="flex h-full flex-col px-3 py-3 pr-12">
+    <Link href={href} className={cn("flex h-full flex-col px-3 py-3 pr-12", recuo && "pl-9")}>
       <span className="line-clamp-2 text-sm leading-snug font-medium">
         {emoji ? <span className="mr-1">{emoji}</span> : null}
         {titulo}

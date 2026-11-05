@@ -2,8 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react"
 import { Pencil } from "lucide-react"
-import { editarSerie, type EstadoSerie } from "@/app/series/acoes"
-import { useFirebase } from "@/components/dados/provedor-firebase"
+import { useBanco } from "@/components/dados/provedor-firebase"
 import { RemoverSerie } from "@/components/series/remover-serie"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PERFIL_LABEL, type Perfil } from "@/lib/conteudo"
+import type { EstadoGravacao } from "@/lib/gravar-nuvem"
 import { EscolhaAparencia } from "@/components/series/escolha-aparencia"
 
 export function EditarSerie({
@@ -93,8 +93,8 @@ function Formulario({
   emoji?: string | null
   aoSalvar: () => void
 }) {
-  const nuvem = useFirebase()
-  const [estado, acao, pendente] = useActionState<EstadoSerie, FormData>(nuvem?.editarSerie ?? editarSerie, {})
+  const banco = useBanco()
+  const [estado, acao, pendente] = useActionState<EstadoGravacao, FormData>(banco.editarSerie, {})
 
   useEffect(() => {
     if (estado.ok) aoSalvar()

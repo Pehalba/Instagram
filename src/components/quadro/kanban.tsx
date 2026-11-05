@@ -14,9 +14,10 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, ListFilter } from "lucide-react"
-import { moverStatus } from "@/app/ideias/acoes"
-import { useFirebase } from "@/components/dados/provedor-firebase"
+import { ArrowLeft, GripVertical, ListFilter } from "lucide-react"
+import { CartaoIdeia } from "@/components/banco/cartao-ideia"
+import { DrawerIdeia } from "@/components/banco/drawer-ideia"
+import { useBanco } from "@/components/dados/provedor-firebase"
 import { deteccao } from "@/components/quadro/deteccao"
 import { FiltroPerfil } from "@/components/quadro/filtro-perfil"
 import { Button } from "@/components/ui/button"
@@ -26,20 +27,20 @@ import {
   PERFIL_LABEL,
   PRIORIDADES,
   PRIORIDADE_LABEL,
-  STATUS,
+  ORDEM_ETAPAS,
   STATUS_LABEL,
   classeBordaPerfil,
   eStatus,
   type Perfil,
   type Prioridade,
 } from "@/lib/conteudo"
-import type { CartaoQuadro } from "@/lib/tipos-ideia"
+import type { CartaoQuadro, IdeiaLista } from "@/lib/tipos-ideia"
 import { cn } from "cn"
 
 const LOTE = 24
 
 export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
-  const nuvem = useFirebase()
+  const banco = useBanco()
   const [perfil, setPerfil] = useState<Perfil | "">("")
   const [prioridade, setPrioridade] = useState<Prioridade | "">("")
   const [serie, setSerie] = useState("")
@@ -47,6 +48,9 @@ export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
   const [busca, setBusca] = useState("")
   const [itens, setItens] = useState(ideias)
   const [arrastando, setArrastando] = useState<CartaoQuadro | null>(null)
+  const [expandida, setExpandida] = useState<Etapa | null>(null)
+  const [ordemExpandida, setOrdemExpandida] = useState<Ordem>("az")
+  const [alvo, setAlvo] = useState<IdeiaLista | null>(null)
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   useEffect(() => {
@@ -91,6 +95,16 @@ export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
     return mapa
   }, [visiveis])
 
+  const daEtapa = useMemo(() => {
+    if (!expandida) return []
+    const porId = new Map(banco.ideias.map((ideia) => [ideia.id, ideia]))
+    const lista = (porStatus.get(expandida) ?? []).flatMap((cartao) => {
+      const ideia = porId.get(cartao.id)
+      return ideia ? [ideia] : []
+    })
+    return ordenar(lista, ordemExpandida)
+  }, [banco.ideias, expandida, ordemExpandida, porStatus])
+
   function aoComecar(evento: DragStartEvent) {
     setArrastando(itens.find((ideia) => ideia.id === String(evento.active.id)) ?? null)
   }
@@ -106,7 +120,7 @@ export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
     const anterior = itens
     setItens((lista) => lista.map((ideia) => (ideia.id === id ? { ...ideia, status: destino } : ideia)))
     try {
-      await (nuvem?.moverStatus ?? moverStatus)(id, destino)
+      await banco.moverStatus(id, destino)
     } catch {
       setItens(anterior)
     }
@@ -122,7 +136,11 @@ export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
     >
       <div className="mb-4">
         <h1 className="font-heading text-3xl leading-tight sm:text-4xl lg:text-5xl">Planejamento</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Arraste pelo ícone para mudar o status.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {expandida
+            ? "Toque no estágio do cartão para mudar o status, ou no lápis para editar."
+            : "Arraste pelo ícone para mudar o status. Clique no nome da etapa para ver todos os cartões dela."}
+        </p>
       </div>
       <div className="mb-4 flex items-center gap-2">
         <Input
@@ -198,11 +216,40 @@ export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
           ) : null}
         </div>
       ) : null}
-      <div className="flex w-full min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-4 xl:grid xl:grid-cols-6 xl:overflow-visible">
-        {COLUNAS.map((status) => (
-          <Coluna key={status} status={status} ideias={porStatus.get(status) ?? VAZIO} />
-        ))}
-      </div>
+      {expandida ? (
+        <section className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onClick={() => setExpandida(null)}>
+              <ArrowLeft />
+              Voltar ao quadro
+            </Button>
+            <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+              {STATUS_LABEL[expandida]} · {daEtapa.length}
+            </h2>
+            <div className="ml-auto w-full sm:w-60">
+              <SelectOrdem valor={ordemExpandida} aoMudar={setOrdemExpandida} rotulo="Ordenar a etapa" />
+            </div>
+          </div>
+          {daEtapa.length === 0 ? (
+            <p className="rounded-2xl border border-dashed px-4 py-10 text-center text-muted-foreground">
+              Nenhuma ideia nesta etapa.
+            </p>
+          ) : (
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {daEtapa.map((ideia) => (
+                <CartaoIdeia key={ideia.id} ideia={ideia} onAbrir={() => setAlvo(ideia)} />
+              ))}
+            </ul>
+          )}
+          <DrawerIdeia aberto={alvo !== null} ideia={alvo} series={banco.series} onFechar={() => setAlvo(null)} />
+        </section>
+      ) : (
+        <div className="flex w-full min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto pb-4 xl:grid xl:grid-cols-6 xl:overflow-visible">
+          {COLUNAS.map((status) => (
+            <Coluna key={status} status={status} ideias={porStatus.get(status) ?? VAZIO} aoExpandir={setExpandida} />
+          ))}
+        </div>
+      )}
       <DragOverlay>
         {arrastando ? <CartaoVisual ideia={arrastando} arrastando /> : null}
       </DragOverlay>
@@ -210,19 +257,65 @@ export function QuadroKanban({ ideias }: { ideias: CartaoQuadro[] }) {
   )
 }
 
-const COLUNAS = STATUS.filter((status) => status !== "AGENDADO")
+const COLUNAS = ORDEM_ETAPAS
+type Etapa = (typeof COLUNAS)[number]
 const VAZIO: CartaoQuadro[] = []
 
 const selectColuna =
   "h-8 w-full rounded-lg border border-input bg-background px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 
-const Coluna = memo(function Coluna({ status, ideias }: { status: (typeof COLUNAS)[number]; ideias: CartaoQuadro[] }) {
+type Ordem = "az" | "za" | "novas" | "antigas"
+
+const ORDENS: { valor: Ordem; rotulo: string }[] = [
+  { valor: "az", rotulo: "A–Z" },
+  { valor: "za", rotulo: "Z–A" },
+  { valor: "novas", rotulo: "Mais novas" },
+  { valor: "antigas", rotulo: "Mais antigas" },
+]
+
+function ordenar<T extends { titulo: string; criadoEm: string }>(lista: T[], ordem: Ordem): T[] {
+  return [...lista].sort((a, b) => {
+    if (ordem === "novas") return b.criadoEm.localeCompare(a.criadoEm) || a.titulo.localeCompare(b.titulo, "pt-BR")
+    if (ordem === "antigas") return a.criadoEm.localeCompare(b.criadoEm) || a.titulo.localeCompare(b.titulo, "pt-BR")
+    const porTitulo = a.titulo.localeCompare(b.titulo, "pt-BR")
+    return ordem === "za" ? -porTitulo : porTitulo
+  })
+}
+
+function SelectOrdem({ valor, aoMudar, rotulo }: { valor: Ordem; aoMudar: (ordem: Ordem) => void; rotulo: string }) {
+  return (
+    <label className="grid gap-1 text-xs text-muted-foreground">
+      Ordenar
+      <select
+        className={selectColuna}
+        value={valor}
+        aria-label={rotulo}
+        onChange={(evento) => aoMudar(evento.target.value as Ordem)}
+      >
+        {ORDENS.map((item) => (
+          <option key={item.valor} value={item.valor}>{item.rotulo}</option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+const Coluna = memo(function Coluna({
+  status,
+  ideias,
+  aoExpandir,
+}: {
+  status: Etapa
+  ideias: CartaoQuadro[]
+  aoExpandir: (status: Etapa) => void
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: status })
   const [limite, setLimite] = useState(LOTE)
   const [aberto, setAberto] = useState(false)
   const [nome, setNome] = useState("")
   const [perfil, setPerfil] = useState<Perfil | "">("")
   const [serie, setSerie] = useState("")
+  const [ordem, setOrdem] = useState<Ordem>("az")
   const rotulo = STATUS_LABEL[status]
 
   const series = useMemo(() => {
@@ -235,26 +328,28 @@ const Coluna = memo(function Coluna({ status, ideias }: { status: (typeof COLUNA
 
   const filtradas = useMemo(() => {
     const consulta = nome.trim().toLocaleLowerCase()
-    return ideias.filter((ideia) => {
+    const lista = ideias.filter((ideia) => {
       if (perfil && ideia.perfil !== perfil) return false
       if (serie === "sem-serie" && ideia.serieNome) return false
       if (serie && serie !== "sem-serie" && ideia.serieNome !== serie) return false
       if (!consulta) return true
       return ideia.titulo.toLocaleLowerCase().includes(consulta)
     })
-  }, [ideias, nome, perfil, serie])
+    return ordenar(lista, ordem)
+  }, [ideias, nome, ordem, perfil, serie])
 
-  const ativo = Boolean(nome.trim() || perfil || serie)
+  const ativo = Boolean(nome.trim() || perfil || serie || ordem !== "az")
   const trecho = filtradas.length > limite ? filtradas.slice(0, limite) : filtradas
 
   useEffect(() => {
     setLimite(LOTE)
-  }, [nome, perfil, serie])
+  }, [nome, ordem, perfil, serie])
 
   function limpar() {
     setNome("")
     setPerfil("")
     setSerie("")
+    setOrdem("az")
   }
 
   return (
@@ -266,7 +361,16 @@ const Coluna = memo(function Coluna({ status, ideias }: { status: (typeof COLUNA
       )}
     >
       <header className="flex items-start justify-between gap-1 px-1 py-2">
-        <h2 className="min-w-0 flex-1 text-xs leading-snug font-medium tracking-wide text-muted-foreground uppercase sm:text-sm">{rotulo}</h2>
+        <h2 className="min-w-0 flex-1">
+          <button
+            type="button"
+            title={`Ver todas as ideias em ${rotulo}`}
+            onClick={() => aoExpandir(status)}
+            className="text-left text-xs leading-snug font-medium tracking-wide text-muted-foreground uppercase underline-offset-4 hover:text-foreground hover:underline sm:text-sm"
+          >
+            {rotulo}
+          </button>
+        </h2>
         <div className="flex shrink-0 items-center gap-0.5">
           <span className="px-1 text-sm text-muted-foreground">{filtradas.length}</span>
           <Button
@@ -309,6 +413,7 @@ const Coluna = memo(function Coluna({ status, ideias }: { status: (typeof COLUNA
               ))}
             </select>
           </label>
+          <SelectOrdem valor={ordem} aoMudar={setOrdem} rotulo={`Ordenar ${rotulo}`} />
           {ativo ? (
             <Button type="button" variant="ghost" size="xs" className="w-fit" onClick={limpar}>
               Limpar
@@ -382,7 +487,7 @@ function CartaoVisual({
           <GripVertical className="size-4" />
         </button>
         <div className="min-w-0">
-          <Link href={`/ideias/${ideia.id}`} className="text-sm leading-snug">
+          <Link href={`/ideias/roteiro?id=${ideia.id}`} className="text-sm leading-snug">
             {ideia.titulo}
           </Link>
           <p className="mt-1 text-xs text-muted-foreground">

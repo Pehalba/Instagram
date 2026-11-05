@@ -12,6 +12,7 @@ export type ColagemIdeia = {
   titulo: string
   perfil: Perfil | null
   serieNome: string
+  subserieNome: string
   status: StatusIdeia | null
   prioridade: Prioridade | null
   formato: Formato | null
@@ -35,6 +36,7 @@ export type ColagemIdeia = {
 const ROTULOS: Record<string, string> = {
   perfil: "perfil",
   serie: "serieNome",
+  subserie: "subserieNome",
   titulo: "titulo",
   status: "status",
   estagio: "status",
@@ -63,10 +65,12 @@ const ROTULOS: Record<string, string> = {
 const NOMES: Record<string, string> = {
   perfil: "perfil",
   serieNome: "série",
+  subserieNome: "subsérie",
   titulo: "título",
   status: "estágio",
   prioridade: "prioridade",
-  formatoDescricao: "formato",
+  formatoCurto: "formato",
+  formatoDescricao: "formato do roteiro",
   tags: "tags",
   notas: "notas",
   dataPlanejada: "data planejada",
@@ -82,6 +86,7 @@ const NOMES: Record<string, string> = {
 
 export const MODELO_COLAGEM = `Perfil: @carolalbas
 Série:
+Subsérie:
 Título:
 Estágio: Ideia
 Prioridade: Média
@@ -107,6 +112,7 @@ Por que performa:`
 export const INSTRUCOES_COLAGEM = `Transforme a ideia em um texto para colar no estúdio de conteúdo. Responda só com o bloco, sem comentário antes ou depois e sem cerca de código. Preencha o que foi dito e deixe o rótulo vazio quando isso não foi falado. Não invente versículo, história pessoal nem dado novo. Onde a história pessoal ainda falta, escreva [sua história].
 
 Perfil só pode ser @carolalbas, @albasfilms ou @albascouple.
+Subsérie é opcional e fica dentro da série. Deixe vazio se não foi dita.
 Estágio só pode ser um destes: Ideia, Roteirizada, Pronta para gravar, Gravado, Editado ou Postado. Escolha o estágio em que o vídeo está. Se o rótulo não aparecer ou ficar vazio, use Ideia.
 Formato só pode ser Reels, Feed, Carrossel, Stories ou Threads. Feed é post único no feed; Carrossel é post com vários slides.
 Na voz de @carolalbas, fale no feminino, como a Carol. Em @albasfilms, fale como o perfil de filmes. Em @albascouple, fale como o casal.
@@ -200,6 +206,7 @@ export function lerColagem(bruto: string): ColagemIdeia {
     titulo: "",
     perfil: null,
     serieNome: "",
+    subserieNome: "",
     status: null,
     prioridade: null,
     formato: null,
@@ -246,6 +253,7 @@ export function lerColagem(bruto: string): ColagemIdeia {
 
   resultado.titulo = textoDo("titulo")
   resultado.serieNome = textoDo("serieNome").replace(/^sem s[eé]rie$/i, "")
+  resultado.subserieNome = textoDo("subserieNome").replace(/^sem subs[eé]rie$/i, "")
   resultado.tags = textoDo("tags")
   resultado.notas = textoDo("notas")
   resultado.gancho = textoDo("gancho")
@@ -329,4 +337,10 @@ export function seriePeloNome(nome: string, perfil: Perfil, series: { id: string
   const chave = normalizarTitulo(nome)
   if (!chave) return ""
   return series.find((serie) => serie.perfil === perfil && normalizarTitulo(serie.nome) === chave)?.id ?? ""
+}
+
+export function subseriePeloNome(nome: string, serieId: string, subseries: { id: string; nome: string; serieId: string }[]): string {
+  const chave = normalizarTitulo(nome)
+  if (!chave) return ""
+  return subseries.find((subserie) => subserie.serieId === serieId && normalizarTitulo(subserie.nome) === chave)?.id ?? ""
 }

@@ -1,21 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { AtSign, Clapperboard, GalleryHorizontalEnd, Image, Pencil, Smartphone, type LucideIcon } from "lucide-react"
-import { moverStatus } from "@/app/ideias/acoes"
-import { useFirebase } from "@/components/dados/provedor-firebase"
+import { Pencil } from "lucide-react"
+import { ESTILO_FORMATO, SeloFormato } from "@/components/banco/formato-visual"
+import { useBanco } from "@/components/dados/provedor-firebase"
+import { CamadaSelecao } from "@/components/selecao/selecao"
 import { Button } from "@/components/ui/button"
-import { FORMATO_LABEL, PERFIL_LABEL, PRIORIDADE_LABEL, classeTextoPerfil, type Formato, type StatusIdeia } from "@/lib/conteudo"
+import { PERFIL_LABEL, PRIORIDADE_LABEL, classeTextoPerfil, type StatusIdeia } from "@/lib/conteudo"
 import type { IdeiaLista } from "@/lib/tipos-ideia"
 import { cn } from "cn"
-
-const ICONE_FORMATO: Record<Formato, LucideIcon> = {
-  REELS: Clapperboard,
-  FEED: Image,
-  CARROSSEL: GalleryHorizontalEnd,
-  STORIES: Smartphone,
-  THREADS: AtSign,
-}
 
 const MARCAS: { status: StatusIdeia; rotulo: string; sim: string; nao: string }[] = [
   { status: "IDEIA", rotulo: "Ideia", sim: "Ideia", nao: "Ideia" },
@@ -26,8 +19,16 @@ const MARCAS: { status: StatusIdeia; rotulo: string; sim: string; nao: string }[
   { status: "POSTADO", rotulo: "Postado", sim: "Postado", nao: "Não postado" },
 ]
 
-export function CartaoIdeia({ ideia, onAbrir }: { ideia: IdeiaLista; onAbrir: () => void }) {
-  const nuvem = useFirebase()
+export function CartaoIdeia({
+  ideia,
+  onAbrir,
+  selecao,
+}: {
+  ideia: IdeiaLista
+  onAbrir: () => void
+  selecao?: { marcado: boolean; alternar: () => void }
+}) {
+  const banco = useBanco()
   const [status, setStatus] = useState(ideia.status)
   const detalhes = [
     ideia.prioridade ? PRIORIDADE_LABEL[ideia.prioridade] : "Sem prioridade",
@@ -44,7 +45,7 @@ export function CartaoIdeia({ ideia, onAbrir }: { ideia: IdeiaLista; onAbrir: ()
     const proximo = status === alvo ? "IDEIA" : alvo
     setStatus(proximo)
     try {
-      await (nuvem?.moverStatus ?? moverStatus)(ideia.id, proximo)
+      await banco.moverStatus(ideia.id, proximo)
     } catch {
       setStatus(anterior)
     }
@@ -52,10 +53,11 @@ export function CartaoIdeia({ ideia, onAbrir }: { ideia: IdeiaLista; onAbrir: ()
 
   return (
     <li className="min-w-0">
-      <article className="flex h-44 flex-col overflow-hidden rounded-2xl border bg-card">
-        <div className="flex items-center gap-2 border-b bg-muted/50 px-3 py-1.5">
+      <article className="relative flex h-44 flex-col overflow-hidden rounded-2xl border bg-card">
+        {selecao ? <CamadaSelecao marcado={selecao.marcado} rotulo={ideia.titulo} onAlternar={selecao.alternar} /> : null}
+        <div className={cn("flex items-center gap-2 border-b px-3 py-1.5", ideia.formato ? ESTILO_FORMATO[ideia.formato].faixa : "bg-muted/50", selecao && "pl-9")}>
           <span className={`truncate text-[11px] ${classeTextoPerfil(ideia.perfil)}`}>{PERFIL_LABEL[ideia.perfil]}</span>
-          {ideia.formato ? <SeloFormato formato={ideia.formato} /> : null}
+          {ideia.formato ? <SeloFormato formato={ideia.formato} className="ml-auto" /> : null}
           <Button
             type="button"
             variant="ghost"
@@ -94,15 +96,5 @@ export function CartaoIdeia({ ideia, onAbrir }: { ideia: IdeiaLista; onAbrir: ()
         </div>
       </article>
     </li>
-  )
-}
-
-function SeloFormato({ formato }: { formato: Formato }) {
-  const Icone = ICONE_FORMATO[formato]
-  return (
-    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border bg-background px-2 py-1 text-[11px] leading-none font-medium text-foreground">
-      <Icone className="size-3.5" aria-hidden />
-      {FORMATO_LABEL[formato]}
-    </span>
   )
 }

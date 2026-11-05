@@ -1,6 +1,6 @@
 import type { CartaoInicio } from "@/components/inicio/cartoes"
 import type { PerfilPainel } from "@/components/inicio/painel"
-import { PERFIS, PERFIL_LABEL, STATUS, ePerfil, type Perfil, type StatusIdeia } from "@/lib/conteudo"
+import { ORDEM_ETAPAS, PERFIS, PERFIL_LABEL, STATUS, ePerfil, type Perfil, type StatusIdeia } from "@/lib/conteudo"
 import { hojeLocal, indiceSemana, tituloMes } from "@/lib/datas"
 import type { IdeiaNuvem, SerieNuvem } from "@/lib/gravar-nuvem"
 import { roteiroTemTexto } from "@/lib/gravar-nuvem"
@@ -75,7 +75,7 @@ export function resumosDaNuvem(ideias: IdeiaNuvem[], series: SerieNuvem[]): Reco
     const contagem = new Map<StatusIdeia, number>()
     for (const status of STATUS) contagem.set(status, 0)
     for (const ideia of doPerfil) contagem.set(ideia.status, (contagem.get(ideia.status) ?? 0) + 1)
-    const etapas = STATUS.filter((status) => status !== "AGENDADO").map((status) => ({ status, valor: contagem.get(status) ?? 0 }))
+    const etapas = ORDEM_ETAPAS.map((status) => ({ status, valor: contagem.get(status) ?? 0 }))
     const total = doPerfil.length
     const postadas = contagem.get("POSTADO") ?? 0
     const prontas = contagem.get("PRONTO_PARA_GRAVAR") ?? 0
@@ -108,7 +108,7 @@ export function resumosDaNuvem(ideias: IdeiaNuvem[], series: SerieNuvem[]): Reco
           valor: roteiros.length,
           descricao: "Ideias que já têm roteiro.",
           itens: roteiros.map((ideia) => ({
-            href: `/ideias/${ideia.id}`,
+            href: `/ideias/roteiro?id=${ideia.id}`,
             titulo: ideia.titulo,
             detalhe: linhaPerfil(ideia.perfil, nomeSerie(ideia.serieId)),
           })),
@@ -120,7 +120,7 @@ export function resumosDaNuvem(ideias: IdeiaNuvem[], series: SerieNuvem[]): Reco
           itens: quadros.map((serie) => {
             const quantidade = doPerfil.filter((ideia) => ideia.serieId === serie.id).length
             return {
-              href: `/series/${serie.id}`,
+              href: `/series/ver?id=${serie.id}`,
               titulo: serie.nome,
               detalhe: linhaPerfil(serie.perfil, `${quantidade} ${quantidade === 1 ? "ideia" : "ideias"}`),
             }

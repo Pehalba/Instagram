@@ -15,8 +15,7 @@ import {
 } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, ListFilter } from "lucide-react"
-import { agendarIdeia } from "@/app/ideias/acoes"
-import { useFirebase } from "@/components/dados/provedor-firebase"
+import { useBanco } from "@/components/dados/provedor-firebase"
 import { deteccao } from "@/components/quadro/deteccao"
 import { FiltroPerfil } from "@/components/quadro/filtro-perfil"
 import { Button } from "@/components/ui/button"
@@ -40,7 +39,7 @@ import type { CartaoQuadro } from "@/lib/tipos-ideia"
 import { cn } from "cn"
 
 export function CalendarioEditorial({ ideias, hoje }: { ideias: CartaoQuadro[]; hoje: string }) {
-  const nuvem = useFirebase()
+  const banco = useBanco()
   const [visao, setVisao] = useState<"semana" | "mes">("mes")
   const [ancora, setAncora] = useState(hoje)
   const [perfil, setPerfil] = useState<Perfil | "">("")
@@ -131,7 +130,7 @@ export function CalendarioEditorial({ ideias, hoje }: { ideias: CartaoQuadro[]; 
     setItens((lista) => lista.map((ideia) => (ideia.id === id ? { ...ideia, dataPlanejada: novaData } : ideia)))
     if (novaData) setDiaAberto(novaData)
     try {
-      await (nuvem?.agendarIdeia ?? agendarIdeia)(id, novaData)
+      await banco.agendarIdeia(id, novaData)
     } catch {
       setItens(anterior)
     }
@@ -359,7 +358,7 @@ const SemData = memo(function SemData({ ideias }: { ideias: CartaoQuadro[] }) {
     >
       <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">Sem data</h2>
       <div className="mt-1 mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">{filtradas.length} ideias</p>
+        <p className="text-sm text-muted-foreground">{filtradas.length} {filtradas.length === 1 ? "ideia" : "ideias"}</p>
         <Button
           type="button"
           size="icon-sm"
@@ -559,7 +558,7 @@ function Pílula({
       >
         <GripVertical className="size-3.5" />
       </button>
-      <Link href={`/ideias/${ideia.id}`} className="min-w-0 text-xs leading-snug">
+      <Link href={`/ideias/roteiro?id=${ideia.id}`} className="min-w-0 text-xs leading-snug">
         <span className="line-clamp-3">{ideia.titulo}</span>
         <span className="mt-0.5 block text-[11px] text-muted-foreground">{PERFIL_LABEL[ideia.perfil]}</span>
       </Link>

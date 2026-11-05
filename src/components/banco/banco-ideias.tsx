@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { ListFilter } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { CartaoIdeia } from "@/components/banco/cartao-ideia"
 import { DrawerIdeia } from "@/components/banco/drawer-ideia"
+import { AcoesIdeias } from "@/components/selecao/acoes-em-massa"
+import { BarraSelecao, BotaoSelecionar, useSelecao } from "@/components/selecao/selecao"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -13,6 +16,7 @@ import {
   PERFIL_LABEL,
   PRIORIDADES,
   PRIORIDADE_LABEL,
+  ORDEM_ETAPAS,
   STATUS,
   STATUS_LABEL,
   normalizarTitulo,
@@ -50,7 +54,12 @@ export function BancoIdeias({
   const [filtrosAbertos, setFiltrosAbertos] = useState(false)
   const [alvo, setAlvo] = useState<IdeiaLista | "nova" | null>(null)
   const abriuPelaUrl = useRef(false)
-  const fechar = useCallback(() => setAlvo(null), [])
+  const router = useRouter()
+  const selecao = useSelecao()
+  const fechar = useCallback(() => {
+    setAlvo(null)
+    if (abrirId) router.replace("/ideias", { scroll: false })
+  }, [abrirId, router])
 
   useEffect(() => {
     if (abriuPelaUrl.current || !abrirId) return
@@ -117,6 +126,7 @@ export function BancoIdeias({
   function escolherPerfil(proximo: Perfil) {
     setPerfil(proximo)
     setSerieId("")
+    selecao.limpar()
   }
 
   function limparFiltros() {
@@ -155,9 +165,12 @@ export function BancoIdeias({
             ))}
           </div>
         </div>
-        <Button type="button" onClick={() => setAlvo("nova")}>
-          Nova ideia
-        </Button>
+        <div className="flex gap-2">
+          {visiveis.length > 0 ? <BotaoSelecionar selecao={selecao} /> : null}
+          <Button type="button" onClick={() => setAlvo("nova")}>
+            Nova ideia
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-2xl border bg-card p-3">
@@ -197,7 +210,7 @@ export function BancoIdeias({
             </SelectFiltro>
             <SelectFiltro rotulo="Status" value={status} onChange={(valor) => setStatus(valor as StatusIdeia | "")}>
               <option value="">Todos os status</option>
-              {STATUS.filter((item) => item !== "AGENDADO").map((item) => (
+              {ORDEM_ETAPAS.map((item) => (
                 <option key={item} value={item}>{STATUS_LABEL[item]}</option>
               ))}
             </SelectFiltro>
@@ -242,7 +255,12 @@ export function BancoIdeias({
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {mostradas.map((ideia) => (
-            <CartaoIdeia key={ideia.id} ideia={ideia} onAbrir={() => setAlvo(ideia)} />
+            <CartaoIdeia
+              key={ideia.id}
+              ideia={ideia}
+              onAbrir={() => setAlvo(ideia)}
+              selecao={selecao.ativa ? { marcado: selecao.marcados.has(ideia.id), alternar: () => selecao.alternar(ideia.id) } : undefined}
+            />
           ))}
         </ul>
       )}
@@ -251,6 +269,9 @@ export function BancoIdeias({
           Mostrar mais {visiveis.length - quantidade}
         </Button>
       ) : null}
+      <BarraSelecao selecao={selecao} ids={visiveis.map((ideia) => ideia.id)} singular="ideia marcada" plural="ideias marcadas">
+        {(marcados, terminar) => <AcoesIdeias ids={marcados} perfil={perfil} terminar={terminar} />}
+      </BarraSelecao>
 
       <DrawerIdeia
         aberto={alvo !== null}

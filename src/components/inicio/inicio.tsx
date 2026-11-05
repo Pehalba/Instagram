@@ -2,6 +2,7 @@
 
 import { useState, type ComponentProps } from "react"
 import { CartoesInicio, type CartaoInicio } from "@/components/inicio/cartoes"
+import { MidiaKitPerfil } from "@/components/inicio/midia-kit"
 import { PainelInicio } from "@/components/inicio/painel"
 import { PERFIS, PERFIL_LABEL, type Perfil } from "@/lib/conteudo"
 import { cn } from "cn"
@@ -38,6 +39,7 @@ export function Inicio({
         </div>
       </header>
 
+      <MidiaKitPerfil key={perfil} perfil={perfil} />
       <CartoesInicio key={perfil} cartoes={atual.cartoes} />
       <PainelInicio {...atual.painel} />
     </main>

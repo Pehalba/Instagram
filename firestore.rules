@@ -6,8 +6,20 @@ service cloud.firestore {
     match /series/{id} {
       allow read, write: if request.auth != null;
     }
+    match /subseries/{id} {
+      allow read, write: if request.auth != null;
+    }
     match /ideias/{id} {
       allow read, write: if request.auth != null;
+    }
+    match /mensagensParceria/{id} {
+      allow read, write: if request.auth != null;
+    }
+    match /midiakits/{perfil} {
+      allow read, write: if request.auth != null;
+      match /partes/{parte} {
+        allow read, write: if request.auth != null;
+      }
     }
   }
 }

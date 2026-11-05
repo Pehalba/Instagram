@@ -5,6 +5,7 @@ import {
   getDocs,
   writeBatch,
   type Firestore,
+  type WriteBatch,
 } from "firebase/firestore"
 import {
   eFormato,
@@ -23,9 +24,10 @@ import {
   type StatusIdeia,
 } from "@/lib/conteudo"
 import { corSalva, emojiSalvo } from "@/lib/aparencia-serie"
-import type { IdeiaLista, RoteiroEditor, SerieOpcao } from "@/lib/tipos-ideia"
+import type { IdeiaLista, RoteiroEditor, SerieOpcao, SubserieOpcao } from "@/lib/tipos-ideia"
 
 export const COLECAO_SERIES = "series"
+export const COLECAO_SUBSERIES = "subseries"
 export const COLECAO_IDEIAS = "ideias"
 
 export type EstadoGravacao = {
@@ -59,12 +61,25 @@ export type SerieNuvem = {
   ordem: number
 }
 
+export type SubserieNuvem = {
+  id: string
+  nome: string
+  nomeNormalizado: string
+  serieId: string
+  perfil: Perfil
+  descricao: string | null
+  cor: string | null
+  emoji: string | null
+  ordem: number
+}
+
 export type IdeiaNuvem = {
   id: string
   titulo: string
   tituloNormalizado: string
   perfil: Perfil
   serieId: string | null
+  subserieId: string | null
   status: StatusIdeia
   prioridade: Prioridade | null
   formato: Formato | null
@@ -76,6 +91,7 @@ export type IdeiaNuvem = {
   dataPostada: string | null
   ordemNaSerie: number
   roteiro: RoteiroNuvem | null
+  criadoEm: string
   atualizadoEm: string
 }
 
@@ -149,6 +165,24 @@ export function serieDoDocumento(id: string, dados: Record<string, unknown>): Se
   }
 }
 
+export function subserieDoDocumento(id: string, dados: Record<string, unknown>): SubserieNuvem | null {
+  const nome = typeof dados.nome === "string" ? dados.nome : ""
+  const perfil = typeof dados.perfil === "string" ? dados.perfil : ""
+  const serieId = typeof dados.serieId === "string" ? dados.serieId : ""
+  if (!nome || !serieId || !ePerfil(perfil)) return null
+  return {
+    id,
+    nome,
+    nomeNormalizado: typeof dados.nomeNormalizado === "string" ? dados.nomeNormalizado : normalizarTitulo(nome),
+    serieId,
+    perfil,
+    descricao: typeof dados.descricao === "string" && dados.descricao ? dados.descricao : null,
+    cor: typeof dados.cor === "string" ? dados.cor : null,
+    emoji: typeof dados.emoji === "string" ? dados.emoji : null,
+    ordem: typeof dados.ordem === "number" ? dados.ordem : 0,
+  }
+}
+
 export function ideiaDoDocumento(id: string, dados: Record<string, unknown>): IdeiaNuvem | null {
   const titulo = typeof dados.titulo === "string" ? dados.titulo : ""
   const perfil = typeof dados.perfil === "string" ? dados.perfil : ""
@@ -158,12 +192,14 @@ export function ideiaDoDocumento(id: string, dados: Record<string, unknown>): Id
   const formato = typeof dados.formato === "string" && eFormato(dados.formato) ? dados.formato : null
   const bruto = dados.roteiro
   const roteiro = bruto && typeof bruto === "object" ? roteiroDoCampo(bruto as Record<string, unknown>) : null
+  const atualizadoEm = typeof dados.atualizadoEm === "string" ? dados.atualizadoEm : new Date(0).toISOString()
   return {
     id,
     titulo,
     tituloNormalizado: typeof dados.tituloNormalizado === "string" ? dados.tituloNormalizado : normalizarTitulo(titulo),
     perfil,
     serieId: typeof dados.serieId === "string" && dados.serieId ? dados.serieId : null,
+    subserieId: typeof dados.subserieId === "string" && dados.subserieId ? dados.subserieId : null,
     status,
     prioridade,
     formato,
@@ -175,7 +211,8 @@ export function ideiaDoDocumento(id: string, dados: Record<string, unknown>): Id
     dataPostada: typeof dados.dataPostada === "string" && dados.dataPostada ? dados.dataPostada : null,
     ordemNaSerie: typeof dados.ordemNaSerie === "number" ? dados.ordemNaSerie : 0,
     roteiro: roteiroTemTexto(roteiro) ? roteiro : null,
-    atualizadoEm: typeof dados.atualizadoEm === "string" ? dados.atualizadoEm : new Date(0).toISOString(),
+    criadoEm: typeof dados.criadoEm === "string" ? dados.criadoEm : atualizadoEm,
+    atualizadoEm,
   }
 }
 
@@ -198,14 +235,17 @@ function roteiroDoCampo(dados: Record<string, unknown>): RoteiroNuvem {
   }
 }
 
-export function paraLista(ideia: IdeiaNuvem, series: SerieNuvem[]): IdeiaLista {
+export function paraLista(ideia: IdeiaNuvem, series: SerieNuvem[], subseries: SubserieNuvem[] = []): IdeiaLista {
   const serie = series.find((item) => item.id === ideia.serieId) ?? null
+  const subserie = ideia.subserieId ? subseries.find((item) => item.id === ideia.subserieId) ?? null : null
   return {
     id: ideia.id,
     titulo: ideia.titulo,
     perfil: ideia.perfil,
     serieId: ideia.serieId,
     serieNome: serie?.nome ?? null,
+    subserieId: subserie?.id ?? null,
+    subserieNome: subserie?.nome ?? null,
     quadroFixo: serie?.quadroFixo ?? false,
     ordemSerie: serie?.ordem ?? 9999,
     ordemNaSerie: ideia.ordemNaSerie,
@@ -220,6 +260,7 @@ export function paraLista(ideia: IdeiaNuvem, series: SerieNuvem[]): IdeiaLista {
     temRoteiro: roteiroTemTexto(ideia.roteiro),
     legenda: ideia.roteiro?.legenda ?? "",
     cta: ideia.roteiro?.cta ?? "",
+    criadoEm: ideia.criadoEm,
     atualizadoEm: ideia.atualizadoEm,
   }
 }
@@ -231,6 +272,16 @@ export function paraSerieOpcao(serie: SerieNuvem): SerieOpcao {
     perfil: serie.perfil,
     quadroFixo: serie.quadroFixo,
     ordem: serie.ordem,
+  }
+}
+
+export function paraSubserieOpcao(subserie: SubserieNuvem): SubserieOpcao {
+  return {
+    id: subserie.id,
+    nome: subserie.nome,
+    serieId: subserie.serieId,
+    perfil: subserie.perfil,
+    ordem: subserie.ordem,
   }
 }
 
@@ -264,6 +315,7 @@ export async function salvarIdeiaNuvem(
   form: FormData,
   ideias: IdeiaNuvem[],
   series: SerieNuvem[],
+  subseries: SubserieNuvem[],
 ): Promise<EstadoGravacao> {
   const id = texto(form, "id") || null
   const titulo = texto(form, "titulo")
@@ -272,6 +324,7 @@ export async function salvarIdeiaNuvem(
   const prioridadeBruta = texto(form, "prioridade")
   const formato = texto(form, "formato")
   const serieId = texto(form, "serieId") || null
+  const subserieId = serieId ? texto(form, "subserieId") || null : null
 
   if (!titulo) return { erro: "Dê um título para a ideia." }
   if (!ePerfil(perfil)) return { erro: "Escolha o perfil." }
@@ -282,6 +335,9 @@ export async function salvarIdeiaNuvem(
   if (!tituloNormalizado) return { erro: "O título precisa ter alguma letra ou número." }
   if (serieId && !series.some((serie) => serie.id === serieId && serie.perfil === perfil)) {
     return { erro: "Essa série não é deste perfil." }
+  }
+  if (subserieId && !subseries.some((subserie) => subserie.id === subserieId && subserie.serieId === serieId)) {
+    return { erro: "Essa subsérie não é desta série." }
   }
   if (ideias.some((ideia) => ideia.id !== id && ideia.perfil === perfil && ideia.tituloNormalizado === tituloNormalizado)) {
     return { erro: "Já existe uma ideia com esse título neste perfil." }
@@ -321,12 +377,14 @@ export async function salvarIdeiaNuvem(
 
   const referencia = doc(collection(db, COLECAO_IDEIAS))
   const ideiaId = id ?? referencia.id
+  const agoraIso = agora()
   const gravacao = writeBatch(db)
   gravacao.set(doc(db, COLECAO_IDEIAS, ideiaId), {
     titulo,
     tituloNormalizado,
     perfil,
     serieId,
+    subserieId,
     status: statusSalvo,
     prioridade: prioridadeBruta && ePrioridade(prioridadeBruta) ? prioridadeBruta : null,
     formato: formato && eFormato(formato) ? formato : null,
@@ -338,7 +396,8 @@ export async function salvarIdeiaNuvem(
     dataPostada: dataDoFormulario(texto(form, "dataPostada")),
     ordemNaSerie: mudouSerie ? proximaOrdem(ideias, serieId) : atual?.ordemNaSerie ?? 0,
     roteiro,
-    atualizadoEm: agora(),
+    criadoEm: atual?.criadoEm ?? agoraIso,
+    atualizadoEm: agoraIso,
   })
   await gravacao.commit()
   return { ok: true }
@@ -457,17 +516,199 @@ export async function editarSerieNuvem(
   return { ok: true }
 }
 
-export async function removerSerieNuvem(db: Firestore, id: string, ideias: IdeiaNuvem[]) {
-  if (!id || id.startsWith("sem-")) return
-  const gravacao = writeBatch(db)
-  gravacao.delete(doc(db, COLECAO_SERIES, id))
-  const agoraIso = agora()
-  for (const ideia of ideias) {
-    if (ideia.serieId === id) {
-      gravacao.update(doc(db, COLECAO_IDEIAS, ideia.id), { serieId: null, atualizadoEm: agoraIso })
-    }
+type Operacao = (lote: WriteBatch) => void
+
+const OPERACOES_POR_LOTE = 450
+
+async function gravarEmLotes(db: Firestore, operacoes: Operacao[]) {
+  for (let inicio = 0; inicio < operacoes.length; inicio += OPERACOES_POR_LOTE) {
+    const lote = writeBatch(db)
+    for (const operacao of operacoes.slice(inicio, inicio + OPERACOES_POR_LOTE)) operacao(lote)
+    await lote.commit()
   }
+}
+
+export async function removerSerieNuvem(db: Firestore, id: string, ideias: IdeiaNuvem[], subseries: SubserieNuvem[]) {
+  if (!id || id.startsWith("sem-")) return
+  await removerSeriesNuvem(db, [id], ideias, subseries)
+}
+
+export async function removerSeriesNuvem(db: Firestore, ids: string[], ideias: IdeiaNuvem[], subseries: SubserieNuvem[]) {
+  const alvo = new Set(ids.filter((id) => id && !id.startsWith("sem-")))
+  if (alvo.size === 0) return
+  const agoraIso = agora()
+  const operacoes: Operacao[] = [
+    ...[...alvo].map((id): Operacao => (lote) => lote.delete(doc(db, COLECAO_SERIES, id))),
+    ...subseries
+      .filter((subserie) => alvo.has(subserie.serieId))
+      .map((subserie): Operacao => (lote) => lote.delete(doc(db, COLECAO_SUBSERIES, subserie.id))),
+    ...ideias
+      .filter((ideia) => ideia.serieId && alvo.has(ideia.serieId))
+      .map((ideia): Operacao => (lote) =>
+        lote.update(doc(db, COLECAO_IDEIAS, ideia.id), { serieId: null, subserieId: null, atualizadoEm: agoraIso }),
+      ),
+  ]
+  await gravarEmLotes(db, operacoes)
+}
+
+export async function excluirIdeiasNuvem(db: Firestore, ids: string[]) {
+  await gravarEmLotes(db, ids.filter(Boolean).map((id): Operacao => (lote) => lote.delete(doc(db, COLECAO_IDEIAS, id))))
+}
+
+export async function moverIdeiasNuvem(
+  db: Firestore,
+  ids: string[],
+  destino: { serieId: string | null; subserieId: string | null },
+  ideias: IdeiaNuvem[],
+  series: SerieNuvem[],
+  subseries: SubserieNuvem[],
+): Promise<EstadoGravacao> {
+  const selecionados = new Set(ids)
+  const alvo = ideias.filter((ideia) => selecionados.has(ideia.id))
+  if (alvo.length === 0) return { erro: "Nenhuma ideia selecionada." }
+  const subserie = destino.subserieId ? subseries.find((item) => item.id === destino.subserieId) : null
+  if (destino.subserieId && !subserie) return { erro: "Essa subsérie não existe mais." }
+  const serieId = subserie?.serieId ?? destino.serieId
+  const serie = serieId ? series.find((item) => item.id === serieId) : null
+  if (serieId && !serie) return { erro: "Essa série não existe mais." }
+  if (serie && alvo.some((ideia) => ideia.perfil !== serie.perfil)) {
+    return { erro: "Só dá para mover para uma série do mesmo perfil das ideias." }
+  }
+  const subserieId = subserie?.id ?? null
+  let ordem = proximaOrdem(ideias, serieId)
+  const agoraIso = agora()
+  const operacoes = alvo
+    .filter((ideia) => ideia.serieId !== serieId || ideia.subserieId !== subserieId)
+    .map((ideia): Operacao => {
+      const ordemNaSerie = ideia.serieId === serieId ? ideia.ordemNaSerie : serieId ? ordem++ : 0
+      return (lote) =>
+        lote.update(doc(db, COLECAO_IDEIAS, ideia.id), { serieId, subserieId, ordemNaSerie, atualizadoEm: agoraIso })
+    })
+  await gravarEmLotes(db, operacoes)
+  return { ok: true }
+}
+
+export async function moverSubseriesNuvem(
+  db: Firestore,
+  ids: string[],
+  serieId: string,
+  subseries: SubserieNuvem[],
+  series: SerieNuvem[],
+  ideias: IdeiaNuvem[],
+): Promise<EstadoGravacao> {
+  const serie = series.find((item) => item.id === serieId)
+  if (!serie) return { erro: "Escolha a série." }
+  const selecionadas = new Set(ids)
+  const alvo = subseries.filter((subserie) => selecionadas.has(subserie.id) && subserie.serieId !== serieId)
+  if (alvo.length === 0) return { ok: true }
+  if (alvo.some((subserie) => subserie.perfil !== serie.perfil)) {
+    return { erro: "Só dá para mover para uma série do mesmo perfil das subséries." }
+  }
+  const nomes = new Set(subseries.filter((item) => item.serieId === serieId).map((item) => item.nomeNormalizado))
+  for (const subserie of alvo) {
+    if (nomes.has(subserie.nomeNormalizado)) {
+      return { erro: `${serie.nome} já tem uma subsérie chamada ${subserie.nome}.` }
+    }
+    nomes.add(subserie.nomeNormalizado)
+  }
+  let ordemSubserie = subseries.reduce((maximo, item) => (item.serieId === serieId ? Math.max(maximo, item.ordem) : maximo), 0) + 1
+  let ordemIdeia = proximaOrdem(ideias, serieId)
+  const movidas = new Set(alvo.map((subserie) => subserie.id))
+  const agoraIso = agora()
+  const operacoes: Operacao[] = [
+    ...alvo.map((subserie): Operacao => {
+      const ordem = ordemSubserie++
+      return (lote) => lote.update(doc(db, COLECAO_SUBSERIES, subserie.id), { serieId, ordem, atualizadoEm: agoraIso })
+    }),
+    ...ideias
+      .filter((ideia) => ideia.subserieId && movidas.has(ideia.subserieId))
+      .map((ideia): Operacao => {
+        const ordemNaSerie = ordemIdeia++
+        return (lote) => lote.update(doc(db, COLECAO_IDEIAS, ideia.id), { serieId, ordemNaSerie, atualizadoEm: agoraIso })
+      }),
+  ]
+  await gravarEmLotes(db, operacoes)
+  return { ok: true }
+}
+
+export async function criarSubserieNuvem(
+  db: Firestore,
+  form: FormData,
+  subseries: SubserieNuvem[],
+  series: SerieNuvem[],
+): Promise<EstadoGravacao> {
+  const nome = texto(form, "nome")
+  const serieId = texto(form, "serieId")
+  const descricao = texto(form, "descricao")
+  const nomeNormalizado = normalizarTitulo(nome)
+  const serie = series.find((item) => item.id === serieId)
+  if (!serie) return { erro: "Escolha a série." }
+  if (!nomeNormalizado) return { erro: "Dê um nome para a subsérie." }
+  if (subseries.some((item) => item.serieId === serieId && item.nomeNormalizado === nomeNormalizado)) {
+    return { erro: "Já existe uma subsérie com esse nome nesta série." }
+  }
+  const ordem = subseries.reduce((maximo, item) => (item.serieId === serieId ? Math.max(maximo, item.ordem) : maximo), 0) + 1
+  const gravacao = writeBatch(db)
+  gravacao.set(doc(collection(db, COLECAO_SUBSERIES)), {
+    nome,
+    nomeNormalizado,
+    serieId,
+    perfil: serie.perfil,
+    descricao: descricao || null,
+    cor: corSalva(texto(form, "cor")),
+    emoji: emojiSalvo(texto(form, "emoji")),
+    ordem,
+    atualizadoEm: agora(),
+  })
   await gravacao.commit()
+  return { ok: true }
+}
+
+export async function editarSubserieNuvem(
+  db: Firestore,
+  form: FormData,
+  subseries: SubserieNuvem[],
+): Promise<EstadoGravacao> {
+  const id = texto(form, "id")
+  const nome = texto(form, "nome")
+  const descricao = texto(form, "descricao")
+  const nomeNormalizado = normalizarTitulo(nome)
+  const atual = subseries.find((item) => item.id === id)
+  if (!atual) return { erro: "Essa subsérie não existe mais." }
+  if (!nomeNormalizado) return { erro: "Dê um nome para a subsérie." }
+  if (subseries.some((item) => item.id !== id && item.serieId === atual.serieId && item.nomeNormalizado === nomeNormalizado)) {
+    return { erro: "Já existe uma subsérie com esse nome nesta série." }
+  }
+  const gravacao = writeBatch(db)
+  gravacao.update(doc(db, COLECAO_SUBSERIES, id), {
+    nome,
+    nomeNormalizado,
+    descricao: descricao || null,
+    cor: corSalva(texto(form, "cor")),
+    emoji: emojiSalvo(texto(form, "emoji")),
+    atualizadoEm: agora(),
+  })
+  await gravacao.commit()
+  return { ok: true }
+}
+
+export async function removerSubserieNuvem(db: Firestore, id: string, ideias: IdeiaNuvem[]) {
+  if (!id) return
+  await removerSubseriesNuvem(db, [id], ideias)
+}
+
+export async function removerSubseriesNuvem(db: Firestore, ids: string[], ideias: IdeiaNuvem[]) {
+  const alvo = new Set(ids.filter(Boolean))
+  if (alvo.size === 0) return
+  const agoraIso = agora()
+  await gravarEmLotes(db, [
+    ...[...alvo].map((id): Operacao => (lote) => lote.delete(doc(db, COLECAO_SUBSERIES, id))),
+    ...ideias
+      .filter((ideia) => ideia.subserieId && alvo.has(ideia.subserieId))
+      .map((ideia): Operacao => (lote) =>
+        lote.update(doc(db, COLECAO_IDEIAS, ideia.id), { subserieId: null, atualizadoEm: agoraIso }),
+      ),
+  ])
 }
 
 export async function lerColecao(db: Firestore, nome: string) {

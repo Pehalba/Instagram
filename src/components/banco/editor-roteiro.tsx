@@ -2,8 +2,7 @@
 
 import { useActionState, useState } from "react"
 import Link from "next/link"
-import { salvarRoteiro, type EstadoFormulario } from "@/app/ideias/acoes"
-import { useFirebase } from "@/components/dados/provedor-firebase"
+import { useBanco } from "@/components/dados/provedor-firebase"
 import { BotaoCopiar } from "@/components/banco/botao-copiar"
 import { TextoMarcado } from "@/components/banco/texto-marcado"
 import { Badge } from "@/components/ui/badge"
@@ -17,11 +16,12 @@ import {
   temMarcadorAberto,
 } from "@/lib/texto-roteiro"
 import { extrairAutores, extrairReferenciasBiblicas } from "@/lib/conteudo"
+import type { EstadoGravacao } from "@/lib/gravar-nuvem"
 import type { IdeiaLista, RoteiroEditor } from "@/lib/tipos-ideia"
 
 export function EditorRoteiro({ ideia, roteiro }: { ideia: IdeiaLista; roteiro: RoteiroEditor }) {
-  const nuvem = useFirebase()
-  const [estado, acao, pendente] = useActionState<EstadoFormulario, FormData>(nuvem?.salvarRoteiro ?? salvarRoteiro, {})
+  const banco = useBanco()
+  const [estado, acao, pendente] = useActionState<EstadoGravacao, FormData>(banco.salvarRoteiro, {})
   const [gancho, setGancho] = useState(roteiro.gancho)
   const [parte1, setParte1] = useState(roteiro.parte1Tensao)
   const [parte2, setParte2] = useState(roteiro.parte2Virada)
@@ -54,7 +54,7 @@ export function EditorRoteiro({ ideia, roteiro }: { ideia: IdeiaLista; roteiro: 
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" render={<Link href={`/ideias?editar=${ideia.id}`} />}>
+          <Button variant="outline" nativeButton={false} render={<Link href={`/ideias?editar=${ideia.id}`} />}>
             Editar dados
           </Button>
         </div>
@@ -97,7 +97,7 @@ export function EditorRoteiro({ ideia, roteiro }: { ideia: IdeiaLista; roteiro: 
               {legenda.length}/{LIMITE_LEGENDA}
             </span>
           </div>
-          <Textarea id="legenda" name="legenda" rows={4} value={legenda} onChange={(evento) => setLegenda(evento.target.value)} />
+          <Textarea id="legenda" name="legenda" rows={4} maxLength={LIMITE_LEGENDA} value={legenda} onChange={(evento) => setLegenda(evento.target.value)} />
           <TextoMarcado texto={legenda} />
         </div>
 

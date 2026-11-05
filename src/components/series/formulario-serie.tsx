@@ -1,16 +1,16 @@
 "use client"
 
 import { useActionState, useEffect } from "react"
-import { criarSerie, type EstadoSerie } from "@/app/series/acoes"
-import { useFirebase } from "@/components/dados/provedor-firebase"
+import { useBanco } from "@/components/dados/provedor-firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PERFIS, PERFIL_LABEL } from "@/lib/conteudo"
+import type { EstadoGravacao } from "@/lib/gravar-nuvem"
 import { EscolhaAparencia } from "@/components/series/escolha-aparencia"
 
 export function FormularioSerie({ aoFechar }: { aoFechar: () => void }) {
-  const nuvem = useFirebase()
-  const [estado, acao, pendente] = useActionState<EstadoSerie, FormData>(nuvem?.criarSerie ?? criarSerie, {})
+  const banco = useBanco()
+  const [estado, acao, pendente] = useActionState<EstadoGravacao, FormData>(banco.criarSerie, {})
 
   useEffect(() => {
     if (estado.ok) aoFechar()

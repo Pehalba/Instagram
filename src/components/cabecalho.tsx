@@ -3,16 +3,18 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Columns3, House, Layers, Lightbulb, Menu, X, type LucideIcon } from "lucide-react"
+import { Calendar, Columns3, Handshake, House, Layers, Lightbulb, ListTree, Menu, X, type LucideIcon } from "lucide-react"
 import { AlternarTema } from "@/components/alternar-tema"
 import { cn } from "cn"
 
 const links: { href: string; rotulo: string; icone: LucideIcon }[] = [
   { href: "/", rotulo: "Início", icone: House },
   { href: "/series", rotulo: "Séries", icone: Layers },
+  { href: "/subseries", rotulo: "Subséries", icone: ListTree },
   { href: "/ideias", rotulo: "Ideias", icone: Lightbulb },
   { href: "/planejamento", rotulo: "Planejamento", icone: Columns3 },
   { href: "/calendario", rotulo: "Calendário", icone: Calendar },
+  { href: "/parcerias", rotulo: "Parcerias", icone: Handshake },
 ]
 
 export function Cabecalho() {

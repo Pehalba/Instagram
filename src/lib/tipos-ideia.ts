@@ -8,12 +8,22 @@ export type SerieOpcao = {
   ordem: number
 }
 
+export type SubserieOpcao = {
+  id: string
+  nome: string
+  serieId: string
+  perfil: Perfil
+  ordem: number
+}
+
 export type IdeiaLista = {
   id: string
   titulo: string
   perfil: Perfil
   serieId: string | null
   serieNome: string | null
+  subserieId: string | null
+  subserieNome: string | null
   quadroFixo: boolean
   ordemSerie: number
   ordemNaSerie: number
@@ -28,6 +38,7 @@ export type IdeiaLista = {
   temRoteiro: boolean
   legenda: string
   cta: string
+  criadoEm: string
   atualizadoEm: string
 }
 
@@ -39,6 +50,7 @@ export type CartaoQuadro = {
   prioridade: Prioridade | null
   serieNome: string | null
   dataPlanejada: string | null
+  criadoEm: string
 }
 
 export type RoteiroEditor = {
