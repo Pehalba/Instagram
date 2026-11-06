@@ -3,11 +3,9 @@
 import { useState, useTransition, type ReactNode } from "react"
 import { FolderInput, Trash2 } from "lucide-react"
 import { useBanco } from "@/components/dados/provedor-firebase"
+import { EscolherDestino } from "@/components/selecao/escolher-destino"
 import { Button } from "@/components/ui/button"
 import type { Perfil } from "@/lib/conteudo"
-
-const selectClass =
-  "h-8 min-w-0 flex-1 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-xs"
 
 function contagem(total: number, singular: string, plural: string) {
   return `${total} ${total === 1 ? singular : plural}`
@@ -70,23 +68,10 @@ function Linha({ children, erro }: { children: ReactNode; erro: string | null })
 
 export function AcoesIdeias({ ids, perfil, terminar }: { ids: string[]; perfil: Perfil; terminar: () => void }) {
   const banco = useBanco()
-  const [destino, setDestino] = useState("")
+  const [escolhendo, setEscolhendo] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { erro, pendente, executar } = useAcao(terminar)
-  const series = banco.seriesCompletas
-    .filter((serie) => serie.perfil === perfil)
-    .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt-BR"))
   const total = contagem(ids.length, "ideia", "ideias")
-
-  function mover() {
-    const [tipo, id] = destino.split(":")
-    executar(() =>
-      banco.moverIdeias(ids, {
-        serieId: tipo === "serie" ? id : null,
-        subserieId: tipo === "subserie" ? id : null,
-      }),
-    )
-  }
 
   if (confirmando) {
     return (
@@ -101,46 +86,34 @@ export function AcoesIdeias({ ids, perfil, terminar }: { ids: string[]; perfil: 
   }
 
   return (
-    <Linha erro={erro}>
-      <select value={destino} onChange={(evento) => setDestino(evento.target.value)} aria-label="Mover para" className={selectClass}>
-        <option value="">Mover para…</option>
-        <option value="sem:">Sem série</option>
-        {series.map((serie) => {
-          const subseries = banco.subseriesCompletas
-            .filter((subserie) => subserie.serieId === serie.id)
-            .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt-BR"))
-          return (
-            <optgroup key={serie.id} label={serie.nome}>
-              <option value={`serie:${serie.id}`}>{serie.nome} (direto na série)</option>
-              {subseries.map((subserie) => (
-                <option key={subserie.id} value={`subserie:${subserie.id}`}>
-                  {serie.nome} › {subserie.nome}
-                </option>
-              ))}
-            </optgroup>
-          )
-        })}
-      </select>
-      <Button type="button" size="sm" disabled={!destino || pendente} onClick={mover}>
+    <Linha erro={escolhendo ? null : erro}>
+      <Button type="button" size="sm" disabled={pendente} onClick={() => setEscolhendo(true)}>
         <FolderInput />
-        {pendente ? "Movendo…" : "Mover"}
+        Mover para…
       </Button>
       <Button type="button" variant="destructive" size="sm" disabled={pendente} onClick={() => setConfirmando(true)}>
         <Trash2 />
         Excluir
       </Button>
+      <EscolherDestino
+        aberto={escolhendo}
+        aoFechar={() => setEscolhendo(false)}
+        titulo={`Mover ${total}`}
+        perfil={perfil}
+        comSubseries
+        pendente={pendente}
+        erro={erro}
+        aoEscolher={(destino) => executar(() => banco.moverIdeias(ids, destino))}
+      />
     </Linha>
   )
 }
 
 export function AcoesSubseries({ ids, perfil, terminar }: { ids: string[]; perfil: Perfil; terminar: () => void }) {
   const banco = useBanco()
-  const [serieId, setSerieId] = useState("")
+  const [escolhendo, setEscolhendo] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { erro, pendente, executar } = useAcao(terminar)
-  const series = banco.seriesCompletas
-    .filter((serie) => serie.perfil === perfil)
-    .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt-BR"))
   const marcadas = new Set(ids)
   const ideias = banco.ideiasCompletas.filter((ideia) => ideia.subserieId && marcadas.has(ideia.subserieId)).length
   const total = contagem(ids.length, "subsérie", "subséries")
@@ -161,21 +134,27 @@ export function AcoesSubseries({ ids, perfil, terminar }: { ids: string[]; perfi
   }
 
   return (
-    <Linha erro={erro}>
-      <select value={serieId} onChange={(evento) => setSerieId(evento.target.value)} aria-label="Mover para a série" className={selectClass}>
-        <option value="">Mover para a série…</option>
-        {series.map((serie) => (
-          <option key={serie.id} value={serie.id}>{serie.nome}</option>
-        ))}
-      </select>
-      <Button type="button" size="sm" disabled={!serieId || pendente} onClick={() => executar(() => banco.moverSubseries(ids, serieId))}>
+    <Linha erro={escolhendo ? null : erro}>
+      <Button type="button" size="sm" disabled={pendente} onClick={() => setEscolhendo(true)}>
         <FolderInput />
-        {pendente ? "Movendo…" : "Mover"}
+        Mover para…
       </Button>
       <Button type="button" variant="destructive" size="sm" disabled={pendente} onClick={() => setConfirmando(true)}>
         <Trash2 />
         Remover
       </Button>
+      <EscolherDestino
+        aberto={escolhendo}
+        aoFechar={() => setEscolhendo(false)}
+        titulo={`Mover ${total}`}
+        perfil={perfil}
+        comSubseries={false}
+        pendente={pendente}
+        erro={erro}
+        aoEscolher={(destino) => {
+          if (destino.serieId) executar(() => banco.moverSubseries(ids, destino.serieId as string))
+        }}
+      />
     </Linha>
   )
 }
